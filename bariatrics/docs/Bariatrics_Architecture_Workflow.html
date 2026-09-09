@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CHN Bariatrics — Static Site, Edge Function &amp; Genie Architecture</title>
+<style>
+  :root{
+    --navy:#0b1f3a; --blue:#2563eb; --cyan:#06b6d4; --green:#16a34a; --amber:#f59e0b; --red:#dc2626; --slate:#475569; --light:#f8fafc; --card:#ffffff; --line:#cbd5e1;
+  }
+  *{box-sizing:border-box} body{margin:0;font-family:Segoe UI, Arial, sans-serif;background:#eef3f8;color:#172033;line-height:1.45}
+  .hero{background:linear-gradient(135deg,var(--navy),#123e73 55%,#0f766e);color:white;padding:42px 54px 34px;border-bottom:6px solid #7dd3fc}
+  .eyebrow{letter-spacing:.12em;font-size:13px;text-transform:uppercase;color:#bae6fd;font-weight:700}.hero h1{font-size:38px;line-height:1.1;margin:10px 0 14px}.hero p{font-size:18px;max-width:1050px;margin:0;color:#e6f3ff}.wrap{max-width:1220px;margin:0 auto;padding:28px}
+  .grid{display:grid;gap:18px}.two{grid-template-columns:1fr 1fr}.three{grid-template-columns:repeat(3,1fr)}.four{grid-template-columns:repeat(4,1fr)}
+  .card{background:var(--card);border:1px solid #dbe4ee;border-radius:18px;padding:22px;box-shadow:0 10px 24px rgba(15,23,42,.07)}
+  h2{font-size:26px;color:var(--navy);margin:5px 0 16px} h3{font-size:19px;color:#17365d;margin:4px 0 10px} h4{margin:10px 0 6px;color:#17365d}
+  .pill{display:inline-block;padding:6px 10px;border-radius:999px;background:#e0f2fe;color:#075985;font-weight:700;font-size:12px;margin:3px 6px 3px 0}.pill.green{background:#dcfce7;color:#14532d}.pill.amber{background:#fef3c7;color:#78350f}.pill.red{background:#fee2e2;color:#7f1d1d}.pill.purple{background:#ede9fe;color:#4c1d95}.pill.gray{background:#f1f5f9;color:#334155}
+  ul{padding-left:20px}.callout{border-left:5px solid var(--blue);background:#eff6ff;padding:14px 16px;border-radius:12px;margin:12px 0}.warning{border-left-color:var(--amber);background:#fffbeb}.success{border-left-color:var(--green);background:#f0fdf4}
+  .kpi{font-size:34px;font-weight:800;color:var(--navy)}.small{font-size:12px;color:#64748b}.muted{color:#64748b}.section{margin-bottom:24px}.legend{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.legend span{font-size:12px;padding:5px 9px;border-radius:100px;background:#f1f5f9;border:1px solid #e2e8f0}
+  svg{max-width:100%;height:auto}.diagram-title{font-weight:800;fill:#0b1f3a}.box{fill:#fff;stroke:#94a3b8;stroke-width:1.4}.box-blue{fill:#eff6ff;stroke:#60a5fa}.box-green{fill:#f0fdf4;stroke:#4ade80}.box-amber{fill:#fffbeb;stroke:#fbbf24}.box-purple{fill:#f5f3ff;stroke:#a78bfa}.box-red{fill:#fef2f2;stroke:#fca5a5}.arrow{stroke:#334155;stroke-width:2.2;marker-end:url(#arrow)}.dash{stroke-dasharray:6 4}.label{font-size:13px;fill:#0f172a}.label-sm{font-size:11px;fill:#334155}.title-sm{font-size:14px;font-weight:700;fill:#0f172a}.source{font-size:12px;color:#475569;border-top:1px solid #e2e8f0;margin-top:14px;padding-top:10px}.footer{font-size:12px;color:#64748b;text-align:center;padding:25px 0 40px}
+  table{width:100%;border-collapse:collapse}th,td{text-align:left;border-bottom:1px solid #e2e8f0;padding:10px;vertical-align:top}th{color:#0f172a;background:#f8fafc}
+  code{background:#f1f5f9;padding:1px 5px;border-radius:5px;font-size:.92em}
+  @media(max-width:900px){.two,.three,.four{grid-template-columns:1fr}.hero{padding:32px 26px}.wrap{padding:18px}.hero h1{font-size:30px}}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="eyebrow">CHN Bariatrics | Engineering Overview</div>
+  <h1>CHN Bariatrics Static Site, Edge Function &amp; Genie Architecture</h1>
+  <p>How an Astro-built rebuild of the Community Health Network "Bariatric and Medical Weight Loss Services" page ships as prerendered HTML on Cloudflare's edge, with a single server route that bridges the public "Information at a glance" panel to an internal Databricks Genie space — without any credential ever reaching the browser.</p>
+</header>
+<main class="wrap">
+  <section class="grid three section">
+    <div class="card"><div class="kpi">1</div><h3>Dynamic route</h3><p>Every page is prerendered to static HTML except <code>/api/genie</code>, which opts into server rendering with <code>export const prerender = false</code>.</p></div>
+    <div class="card"><div class="kpi">1</div><h3>Required secret</h3><p><code>DATABRICKS_CLIENT_SECRET</code>. Tenant, client, workspace, and space IDs all have safe defaults baked into the function.</p></div>
+    <div class="card"><div class="kpi">0</div><h3>Credentials in the browser</h3><p>The Azure service-principal secret and bearer token live only in the Worker. The browser sees a question and an answer string.</p></div>
+  </section>
+
+  <section class="card section">
+    <h2>1. Use Case Summary</h2>
+    <p><strong>Goal:</strong> Rebuild the public CHN Bariatric &amp; Medical Weight Loss marketing page as a fast, self-contained static site, and use it as a working deployment-pipeline test for Astro on Cloudflare — while adding one live feature (an AI "Information at a glance" Q&amp;A panel) that talks to an internal Databricks Genie space.</p>
+    <p><strong>Business value:</strong> The content pages cost nothing to serve — they are static assets on Cloudflare's CDN with no origin round-trip. The one interactive feature is isolated to a single edge function that holds the Azure credentials server-side, authenticates a service principal, and proxies vetted questions to Genie. Adding, changing, or removing the AI panel touches exactly one file and never affects how the rest of the site is built or served.</p>
+    <div class="callout success"><strong>Key property:</strong> Static content and the dynamic AI route are the same Astro project but independent at runtime — the CDN serves HTML with no code execution, and the Worker runs only when the panel calls <code>/api/genie</code>. Neither depends on the other being healthy.</div>
+  </section>
+
+  <section class="grid two section">
+    <div class="card">
+      <h2>2. What the System Does</h2>
+      <ul>
+        <li>Rebuilds the CHN Bariatrics landing page in Astro — header, hero, assessment CTA, services, FAQ, support, locations, and providers — as components under <code>src/</code>.</li>
+        <li>Prerenders every route to static HTML/CSS at build time; images are hot-linked from <code>ecommunity.com</code>.</li>
+        <li>Ships one client-side island: the collapsible "Information at a glance" panel with suggestion chips and a free-text question box.</li>
+        <li>Exposes one server route, <code>/api/genie</code>, that runs as a Cloudflare Worker.</li>
+        <li>In that route: authenticates a Microsoft Entra (Azure AD) service principal via the client-credentials grant, caches the bearer token per isolate, and calls the Databricks Genie conversation API.</li>
+        <li>Starts or continues a Genie conversation, polls the message until <code>COMPLETED</code>, extracts the answer from its attachments, and returns <code>{ answer, conversationId }</code> as JSON.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>3. Project Context</h2>
+      <p>The project lives in the <code>bariatrics/</code> subdirectory of the <code>IndyCrew/cloudflare</code> repo; all commands run from there. Astro's Cloudflare adapter emits a static client bundle plus a Worker entry point. Data flows one direction: browser → edge function → Azure AD → Databricks Genie → back. There is no database, no CMS, and no server the site owns — Genie is the only upstream, reached only through the one function.</p>
+      <div class="legend"><span>Astro 7 (static output)</span><span>@astrojs/cloudflare adapter</span><span>Cloudflare Workers + static assets</span><span>Wrangler</span><span>Microsoft Entra service principal</span><span>Databricks Genie API</span></div>
+    </div>
+  </section>
+
+  <section class="card section">
+    <h2>4. Presentation Diagram — Build &amp; Deploy Flow</h2>
+    <svg viewBox="0 0 1120 300" role="img" aria-label="Build and deploy flow diagram">
+      <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker></defs>
+      <text x="30" y="34" class="diagram-title" font-size="24">Pipeline: Astro Source → Static Build → Cloudflare Edge (CDN + Worker)</text>
+
+      <rect x="35" y="80" width="200" height="110" rx="15" class="box-purple"/><text x="55" y="112" class="title-sm">src/ (Astro)</text><text x="55" y="137" class="label-sm">Pages, layout, components</text><text x="55" y="155" class="label-sm">InfoAtAGlance island</text><text x="55" y="173" class="label-sm">src/pages/api/genie.ts</text>
+      <line x1="235" y1="135" x2="315" y2="135" class="arrow"/>
+
+      <rect x="315" y="80" width="210" height="110" rx="15" class="box-amber"/><text x="335" y="112" class="title-sm">npm run build</text><text x="335" y="137" class="label-sm">astro build +</text><text x="335" y="155" class="label-sm">@astrojs/cloudflare</text><text x="335" y="173" class="label-sm">adapter</text>
+      <line x1="525" y1="135" x2="605" y2="135" class="arrow"/>
+
+      <rect x="605" y="80" width="215" height="110" rx="15" class="box"/><text x="625" y="112" class="title-sm">dist/</text><text x="625" y="137" class="label-sm">client/ — static HTML,</text><text x="625" y="155" class="label-sm">CSS, JS assets</text><text x="625" y="173" class="label-sm">server/ — Worker entry</text>
+
+      <line x1="820" y1="110" x2="900" y2="62" class="arrow"/>
+      <line x1="820" y1="160" x2="900" y2="205" class="arrow"/>
+
+      <rect x="900" y="22" width="195" height="82" rx="15" class="box-green"/><text x="920" y="52" class="title-sm">CDN assets</text><text x="920" y="77" class="label-sm">Prerendered pages,</text><text x="920" y="93" class="label-sm">served with no origin</text>
+      <rect x="900" y="182" width="195" height="82" rx="15" class="box-blue"/><text x="920" y="212" class="title-sm">Worker</text><text x="920" y="237" class="label-sm">Runs only for</text><text x="920" y="253" class="label-sm">/api/genie</text>
+    </svg>
+    <p class="source">Cloudflare Pages is wired to the connected repo with <strong>Root directory = <code>bariatrics</code></strong>, framework preset Astro, build command <code>npm run build</code>, output <code>dist</code>. Push to the production branch → build &amp; deploy; other branches → preview URLs. (<code>package.json</code> also carries a <code>wrangler deploy</code> script for direct Worker deploys.)</p>
+  </section>
+
+  <section class="card section">
+    <h2>5. Architecture Diagram — "Ask a Question" Request Lifecycle</h2>
+    <svg viewBox="0 0 1180 660" role="img" aria-label="Ask a question request lifecycle architecture diagram">
+      <defs><marker id="arrow2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker></defs>
+      <text x="30" y="36" class="diagram-title" font-size="24">One Edge Function Bridges a Public Panel to an Internal Genie Space</text>
+      <rect x="30" y="70" width="1120" height="560" rx="26" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+
+      <rect x="60" y="105" width="230" height="150" rx="18" class="box-blue"/><text x="85" y="138" class="title-sm">Browser</text><text x="85" y="166" class="label-sm">InfoAtAGlance.astro island</text><text x="85" y="186" class="label-sm">Suggestion chip or</text><text x="85" y="206" class="label-sm">free-text question</text><text x="85" y="226" class="label-sm">Keeps conversationId</text>
+
+      <rect x="360" y="95" width="290" height="170" rx="18" class="box-green"/><text x="385" y="128" class="title-sm">/api/genie (Worker)</text><text x="385" y="156" class="label-sm">prerender = false</text><text x="385" y="176" class="label-sm">Validate: question required,</text><text x="385" y="196" class="label-sm">&le; 1000 chars; CORS + OPTIONS</text><text x="385" y="216" class="label-sm">Per-isolate token cache</text><text x="385" y="236" class="label-sm">CHAT mode (default) / AGENT</text>
+      <line x1="290" y1="175" x2="360" y2="175" class="arrow" marker-end="url(#arrow2)"/>
+      <text x="298" y="165" class="label-sm">POST JSON</text>
+
+      <rect x="720" y="95" width="370" height="80" rx="18" class="box-amber"/><text x="745" y="126" class="title-sm">Microsoft Entra (Azure AD)</text><text x="745" y="150" class="label-sm">login.microsoftonline.com/&lt;tenant&gt;/oauth2/v2.0/token</text><text x="745" y="166" class="label-sm">client_credentials · scope = Databricks resource/.default</text>
+      <line x1="650" y1="150" x2="720" y2="135" class="arrow" marker-end="url(#arrow2)"/>
+
+      <rect x="720" y="200" width="370" height="120" rx="18" class="box-purple"/><text x="745" y="232" class="title-sm">Databricks Genie API</text><text x="745" y="258" class="label-sm">start-conversation OR conversations/{id}/messages</text><text x="745" y="278" class="label-sm">poll messages/{id} until COMPLETED</text><text x="745" y="298" class="label-sm">(backoff 0.8s→3s, ~55s deadline)</text>
+      <line x1="905" y1="175" x2="905" y2="200" class="arrow" marker-end="url(#arrow2)"/>
+      <line x1="650" y1="205" x2="720" y2="245" class="arrow" marker-end="url(#arrow2)"/>
+      <text x="640" y="235" class="label-sm">Bearer token</text>
+
+      <rect x="360" y="360" width="290" height="150" rx="18" class="box"/><text x="385" y="393" class="title-sm">answerFromMessage()</text><text x="385" y="421" class="label-sm">Concatenate attachment</text><text x="385" y="441" class="label-sm">text / query descriptions</text><text x="385" y="461" class="label-sm">Fall back to msg.content</text><text x="385" y="481" class="label-sm">Return { answer, conversationId }</text>
+      <line x1="820" y1="320" x2="600" y2="360" class="arrow" marker-end="url(#arrow2)"/>
+      <text x="640" y="345" class="label-sm">COMPLETED message</text>
+
+      <rect x="60" y="380" width="230" height="120" rx="18" class="box-blue"/><text x="85" y="413" class="title-sm">Render in panel</text><text x="85" y="441" class="label-sm">Minimal safe markdown:</text><text x="85" y="461" class="label-sm">escape → **bold**, `code`,</text><text x="85" y="481" class="label-sm">bullets, paragraphs</text>
+      <line x1="360" y1="440" x2="290" y2="440" class="arrow" marker-end="url(#arrow2)"/>
+      <text x="298" y="430" class="label-sm">JSON answer</text>
+
+      <rect x="60" y="300" width="1030" height="28" rx="14" fill="#e2e8f0"/><text x="80" y="320" class="label-sm">Trust boundary: DATABRICKS_CLIENT_SECRET, the Azure bearer token, and all workspace/space IDs stay inside the Worker — only the question text crosses out to Azure/Databricks, only the answer string crosses back to the browser.</text>
+
+      <rect x="60" y="540" width="1030" height="70" rx="16" fill="#f0fdf4" stroke="#4ade80"/><text x="80" y="566" class="title-sm">Error handling</text><text x="80" y="588" class="label-sm">HttpError carries a status: 400 bad input · 500 missing secret · 502 upstream failure / empty answer · 504 Genie timeout. Errors return { error } JSON with CORS; the panel shows the message inline.</text>
+    </svg>
+  </section>
+
+  <section class="grid two section">
+    <div class="card">
+      <h2>6. Configuration</h2>
+      <table>
+        <thead><tr><th>Variable</th><th>Kind</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td><code>DATABRICKS_CLIENT_SECRET</code></td><td><span class="pill red">Secret</span></td><td>Required. Set as an encrypted var for both Production and Preview, then redeploy.</td></tr>
+          <tr><td><code>DATABRICKS_TENANT_ID</code></td><td><span class="pill gray">Plaintext</span></td><td>Optional. Overrides the baked default Entra tenant.</td></tr>
+          <tr><td><code>DATABRICKS_CLIENT_ID</code></td><td><span class="pill gray">Plaintext</span></td><td>Optional. Overrides the default service-principal app ID.</td></tr>
+          <tr><td><code>DATABRICKS_WORKSPACE_URL</code></td><td><span class="pill gray">Plaintext</span></td><td>Optional. Overrides the default Azure Databricks workspace host.</td></tr>
+          <tr><td><code>DATABRICKS_GENIE_SPACE_ID</code></td><td><span class="pill gray">Plaintext</span></td><td>Optional. Overrides the default Genie space.</td></tr>
+          <tr><td><code>DATABRICKS_GENIE_MODE</code></td><td><span class="pill gray">Plaintext</span></td><td>Optional. <code>CHAT</code> (default) or <code>AGENT</code> for Genie's full SQL/tool path.</td></tr>
+        </tbody>
+      </table>
+      <p class="small">Locally: <code>cp .dev.vars.example .dev.vars</code>, paste the secret, then <code>npm run build</code> and <code>npx wrangler pages dev dist</code> — <code>astro dev</code> does not run the function.</p>
+    </div>
+    <div class="card">
+      <h2>7. Page Sections Rebuilt</h2>
+      <ul>
+        <li><strong>SiteHeader:</strong> CHN logo, tri-color topbar, utility nav (MyChart, Find a Provider, Get Started).</li>
+        <li><strong>InfoAtAGlance:</strong> the Genie-backed panel — static lede + 4 suggestion chips + question box.</li>
+        <li><strong>Hero:</strong> overlaid title + lede on the CHN bariatric hero image.</li>
+        <li><strong>Assessment CTA</strong>, <strong>Services and Programs</strong> (3 cards), <strong>FAQ</strong>, <strong>Support</strong> bands.</li>
+        <li><strong>Locations:</strong> North and South, with address, phone, and thumbnail.</li>
+        <li><strong>Providers:</strong> 4 named physicians, initials fallback when no photo.</li>
+        <li><strong>SiteFooter:</strong> brand line, footer nav, "not the official site" disclaimer.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="card section">
+    <h2>8. Edge Function Concept</h2>
+    <p><strong>Route:</strong> <code>POST /api/genie</code> &nbsp;·&nbsp; <strong>Body:</strong> <code>{ question, conversationId? }</code> &nbsp;·&nbsp; <strong>Runs as:</strong> a Cloudflare Worker (the rest of the site is prerendered).</p>
+    <p><strong>Responsibilities:</strong></p>
+    <ul>
+      <li><code>OPTIONS</code> — CORS preflight (<code>*</code> origin, POST only, Content-Type header).</li>
+      <li><strong>Validate</strong> — reject empty questions and anything over 1000 characters with a 400.</li>
+      <li><code>getToken()</code> — client-credentials grant against Entra; cache the token per isolate until 60s before expiry.</li>
+      <li><code>genieFetch()</code> — thin wrapper over <code>/api/2.0/genie…</code> with the bearer token; turns non-2xx into a 502 with a truncated detail string.</li>
+      <li><strong>Start vs. continue</strong> — no <code>conversationId</code> → <code>start-conversation</code> with <code>conversation_type = mode</code>; otherwise POST a message to the existing conversation.</li>
+      <li><code>pollMessage()</code> — poll until <code>COMPLETED</code>; fail fast on <code>FAILED</code>/<code>CANCELLED</code>; 504 after ~55s.</li>
+      <li><code>answerFromMessage()</code> — prefer attachment text, then query descriptions, then <code>msg.content</code>.</li>
+    </ul>
+    <div class="callout warning"><strong>Statefulness note:</strong> the token cache is per-isolate and non-durable — it only avoids re-auth during bursts on a warm isolate. Genie conversation continuity is the client's job: the browser holds <code>conversationId</code> and sends it back on follow-up questions.</div>
+  </section>
+
+  <section class="card section">
+    <h2>9. Build Log</h2>
+    <ol>
+      <li><strong>Rebuild the page as an Astro static site:</strong> CHN Bariatric &amp; Medical Weight Loss landing page as components with a global stylesheet.</li>
+      <li><strong>Use the real CHN logo</strong> in the header.</li>
+      <li><strong>Move the Astro build into a <code>bariatrics/</code> subdirectory</strong> so Cloudflare can build it from a subfolder of the shared repo.</li>
+      <li><strong>Use the CHN starburst mark as the favicon.</strong></li>
+      <li><strong>Add the "Information at a glance" panel</strong> backed by Databricks Genie via a new <code>/api/genie</code> server route and an Azure service-principal auth flow.</li>
+      <li><strong>Tune the Genie panel:</strong> CHAT mode as the default, longer poll window, and minimal client-side markdown rendering for answers.</li>
+    </ol>
+  </section>
+
+  <section class="card section">
+    <h2>10. Summary</h2>
+    <p>"CHN Bariatrics is an Astro rebuild of a single Community Health Network marketing page, prerendered to static HTML and served from Cloudflare's edge with no origin. The one exception is <code>/api/genie</code>, a Worker route that opts out of prerendering: it authenticates a Microsoft Entra service principal, proxies a visitor's question to an internal Databricks Genie space, polls until the answer is ready, and returns just the answer text — so the 'Information at a glance' panel can be conversational without any Azure or Databricks credential ever reaching the browser."</p>
+    <p>"The architectural value is the isolation. The content build, the AI route, and the upstream Genie space are each independently swappable — restyling the page, changing Genie modes or spaces, or removing the panel entirely each touch only one layer, and a Genie outage never affects how the rest of the site is served."</p>
+  </section>
+
+  <section class="card section">
+    <h2>Sources Used</h2>
+    <ul>
+      <li>Project source: <code>src/pages/index.astro</code>, <code>src/layouts/Base.astro</code>, <code>src/components/{SiteHeader,SiteFooter,InfoAtAGlance}.astro</code>.</li>
+      <li>Edge function: <code>src/pages/api/genie.ts</code> (Azure AD token, Genie conversation + polling, answer extraction).</li>
+      <li>Build &amp; deploy config: <code>astro.config.mjs</code>, <code>package.json</code>, <code>wrangler.jsonc</code>, <code>.dev.vars.example</code>, <code>README.md</code>.</li>
+      <li>Upstream: Community Health Network "Bariatric and Medical Weight Loss Services" page on <code>ecommunity.com</code>; Databricks Genie Conversation API; Microsoft Entra OAuth 2.0 client-credentials.</li>
+    </ul>
+  </section>
+</main>
+<footer class="footer">Generated for CHN Bariatrics engineering reference. This project is a Cloudflare deployment test and is not the official Community Health Network website.</footer>
+</body>
+</html>

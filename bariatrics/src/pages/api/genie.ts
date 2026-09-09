@@ -165,6 +165,22 @@ async function pollMessage(
 export const OPTIONS: APIRoute = () =>
   new Response(null, { status: 204, headers: CORS });
 
+// GET /api/genie — diagnostic. Reports which config the Worker runtime can see
+// (names + booleans only, never values). Safe to leave in; remove later.
+export const GET: APIRoute = () => {
+  const env = runtimeEnv as unknown as Record<string, unknown>;
+  return json({
+    present: {
+      DATABRICKS_CLIENT_SECRET: Boolean(env.DATABRICKS_CLIENT_SECRET),
+      DATABRICKS_TENANT_ID: Boolean(env.DATABRICKS_TENANT_ID),
+      DATABRICKS_CLIENT_ID: Boolean(env.DATABRICKS_CLIENT_ID),
+      DATABRICKS_WORKSPACE_URL: Boolean(env.DATABRICKS_WORKSPACE_URL),
+      DATABRICKS_GENIE_SPACE_ID: Boolean(env.DATABRICKS_GENIE_SPACE_ID),
+    },
+    envKeys: Object.keys(env).sort(),
+  });
+};
+
 export const POST: APIRoute = async ({ request }) => {
   const env = runtimeEnv as unknown as Env;
 
