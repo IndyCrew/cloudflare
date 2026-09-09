@@ -1,0 +1,10 @@
+# Local-only secrets for `wrangler pages dev`. Copy to .dev.vars (gitignored).
+# The non-secret IDs have safe defaults baked into functions/api/genie.ts;
+# only the client secret is required.
+DATABRICKS_CLIENT_SECRET=
+
+# Optional overrides:
+# DATABRICKS_TENANT_ID=
+# DATABRICKS_CLIENT_ID=
+# DATABRICKS_WORKSPACE_URL=
+# DATABRICKS_GENIE_SPACE_ID=

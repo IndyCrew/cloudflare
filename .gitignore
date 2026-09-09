@@ -14,5 +14,7 @@ pnpm-debug.log*
 # environment / editor
 .env
 .env.production
+.dev.vars
+.wrangler/
 .DS_Store
 .vscode/
