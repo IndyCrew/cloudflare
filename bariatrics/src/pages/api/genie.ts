@@ -165,10 +165,26 @@ async function pollMessage(
 export const OPTIONS: APIRoute = () =>
   new Response(null, { status: 204, headers: CORS });
 
-// GET /api/genie — readiness check. Booleans only, never names or values.
+// GET /api/genie — readiness check. Never returns names or values: for the
+// secret it reports only whether an exactly-named key exists, and whether some
+// near-miss key (wrong name) is present, by length only.
 export const GET: APIRoute = () => {
-  const env = runtimeEnv as unknown as Env;
-  return json({ ready: Boolean(env.DATABRICKS_CLIENT_SECRET) });
+  const env = runtimeEnv as unknown as Record<string, unknown>;
+  const keys = Object.keys(env);
+  const nearMiss = keys
+    .filter((k) => k.startsWith("DATABRICKS_CLIENT_SECRET") && k !== "DATABRICKS_CLIENT_SECRET")
+    .map((k) => ({ nameLength: k.length }));
+  return json({
+    ready: Boolean(env.DATABRICKS_CLIENT_SECRET),
+    ids: {
+      tenant: Boolean(env.DATABRICKS_TENANT_ID),
+      client: Boolean(env.DATABRICKS_CLIENT_ID),
+      workspace: Boolean(env.DATABRICKS_WORKSPACE_URL),
+      space: Boolean(env.DATABRICKS_GENIE_SPACE_ID),
+    },
+    secretKeyMisnamed: nearMiss,
+    totalEnvKeys: keys.length,
+  });
 };
 
 export const POST: APIRoute = async ({ request }) => {
