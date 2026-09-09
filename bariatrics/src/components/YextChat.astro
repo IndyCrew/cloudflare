@@ -1,0 +1,430 @@
+---
+/**
+ * Floating "eCommunity AI Chat Bot" — a rebuild of the Yext Chat pop-up on the
+ * live site. Talks directly to the Yext Chat API from the browser (the chat
+ * API key is a public client credential, the same way the live site exposes it).
+ */
+const chat = {
+  apiDomain: "https://cdn.yextapis.com",
+  botId: "chatbotv2",
+  // Public client-side Yext Chat key (as published on ecommunity.com).
+  apiKey: "807907209f7c6803fd7a241e251443b1",
+  version: "20230101",
+  title: "eCommunity AI Chat Bot",
+  greeting: "How may we help you?",
+  suggestions: [
+    "Get Care Now",
+    "Appointments",
+    "Costs & Billing",
+    "MyChart",
+    "Find a Doctor",
+    "Careers",
+    "Mammography",
+    "Screenings",
+  ],
+};
+---
+
+<div class="ychat" data-ychat data-config={JSON.stringify(chat)}>
+  <button type="button" class="ychat__launcher" data-ychat-launch aria-label="Open chat" aria-expanded="false">
+    <svg class="ychat__launch-icon" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
+      <path d="M4 4h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H9l-5 4V5a1 1 0 0 1 1-1Z" fill="currentColor"/>
+    </svg>
+  </button>
+
+  <section class="ychat__panel" data-ychat-panel hidden aria-label={chat.title}>
+    <header class="ychat__header">
+      <h2 class="ychat__title">{chat.title}</h2>
+      <div class="ychat__header-actions">
+        <button type="button" class="ychat__icon-btn" data-ychat-restart aria-label="Restart conversation" title="Restart">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 1 0 3-6.7M3 4v4h4"/>
+          </svg>
+        </button>
+        <button type="button" class="ychat__icon-btn" data-ychat-close aria-label="Close chat">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M6 6l12 12M18 6L6 18"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="ychat__log" data-ychat-log aria-live="polite">
+      <div class="ychat__msg ychat__msg--bot">
+        <div class="ychat__bubble">{chat.greeting}</div>
+      </div>
+    </div>
+
+    <div class="ychat__suggestions" data-ychat-suggestions>
+      {chat.suggestions.map((s) => (
+        <button type="button" class="ychat__chip" data-ychat-suggestion={s}>{s}</button>
+      ))}
+    </div>
+
+    <form class="ychat__form" data-ychat-form>
+      <input
+        type="text"
+        class="ychat__input"
+        name="message"
+        placeholder="Type a message…"
+        autocomplete="off"
+        maxlength="1000"
+        aria-label="Type a message"
+      />
+      <button type="submit" class="ychat__send" aria-label="Send">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="currentColor">
+          <path d="M12 4l7 7h-4v9h-6v-9H5l7-7Z"/>
+        </svg>
+      </button>
+    </form>
+  </section>
+</div>
+
+<style is:global>
+  /* Global: message bubbles are created by the client script and would not
+     match Astro's scoped selectors otherwise. Class names are namespaced. */
+  .ychat {
+    --plum-a: #692364;
+    --plum-b: #461743;
+    --plum-mid: #581d53;
+  }
+
+  /* Launcher */
+  .ychat__launcher {
+    position: fixed;
+    right: 1.25rem;
+    bottom: 1.25rem;
+    z-index: 60;
+    width: 56px;
+    height: 56px;
+    border: 0;
+    border-radius: 999px;
+    background: linear-gradient(to top right, var(--plum-a), var(--plum-b));
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 24px rgba(70, 23, 67, 0.4);
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .ychat__launcher:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(70, 23, 67, 0.45); }
+  .ychat[data-open] .ychat__launcher { display: none; }
+  @media (min-width: 1024px) {
+    .ychat__launcher { right: 2.5rem; bottom: 3rem; width: 64px; height: 64px; }
+  }
+
+  /* Panel */
+  .ychat__panel[hidden] { display: none; }
+  .ychat__panel {
+    position: fixed;
+    right: 1.25rem;
+    bottom: 1.25rem;
+    z-index: 60;
+    width: 380px;
+    max-width: calc(100vw - 2rem);
+    height: 560px;
+    max-height: calc(100vh - 2rem);
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(23, 23, 40, 0.35);
+  }
+  @media (min-width: 1024px) {
+    .ychat__panel { right: 2.5rem; bottom: 3rem; }
+  }
+  @media (max-width: 480px) {
+    .ychat__panel { right: 0; bottom: 0; border-radius: 0; max-width: 100vw; height: 100vh; max-height: 100vh; }
+  }
+
+  .ychat__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.85rem 0.75rem 0.85rem 1rem;
+    background: linear-gradient(to top right, var(--plum-a), var(--plum-b));
+    color: #fff;
+  }
+  .ychat__title {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 1.15rem;
+    margin: 0;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .ychat__header-actions { display: flex; gap: 0.15rem; flex: none; }
+  .ychat__icon-btn {
+    background: transparent;
+    border: 0;
+    color: #fff;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .ychat__icon-btn:hover { background: rgba(255, 255, 255, 0.15); }
+
+  .ychat__log {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    background: #fff;
+  }
+  .ychat__msg { display: flex; }
+  .ychat__msg--user { justify-content: flex-end; }
+  .ychat__bubble {
+    max-width: 82%;
+    padding: 0.7rem 0.9rem;
+    border-radius: 16px;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    background: linear-gradient(to top right, #f9fcfe, #f1f5f6);
+    color: var(--ink);
+  }
+  .ychat__msg--user .ychat__bubble {
+    background: linear-gradient(to top right, var(--plum-a), var(--plum-mid));
+    color: #fff;
+  }
+  .ychat__bubble p { margin: 0 0 0.5rem; }
+  .ychat__bubble p:last-child { margin-bottom: 0; }
+  .ychat__bubble ul { margin: 0.3rem 0; padding-left: 1.1rem; }
+  .ychat__bubble a { color: inherit; text-decoration: underline; }
+  .ychat__bubble code {
+    background: rgba(0, 0, 0, 0.06);
+    padding: 0.05rem 0.3rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+  }
+  .ychat__bubble--typing { color: var(--muted); font-style: italic; }
+  .ychat__bubble--error {
+    background: #fbeceb;
+    color: #8a1c14;
+  }
+
+  .ychat__suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding: 0 1.1rem 0.75rem;
+  }
+  .ychat__suggestions[hidden] { display: none; }
+  .ychat__chip {
+    background: linear-gradient(to top right, var(--plum-a), var(--plum-mid));
+    color: #fff;
+    border: 0;
+    border-radius: 999px;
+    padding: 0.4rem 0.8rem;
+    font: inherit;
+    font-size: 0.82rem;
+    cursor: pointer;
+  }
+  .ychat__chip:hover { filter: brightness(1.08); }
+
+  .ychat__form {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border-top: 1px solid var(--rule);
+  }
+  .ychat__input {
+    flex: 1;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    padding: 0.6rem 0.95rem;
+    font: inherit;
+    font-size: 0.95rem;
+  }
+  .ychat__input:focus-visible { outline: 2px solid var(--plum-a); outline-offset: 1px; }
+  .ychat__send {
+    flex: none;
+    width: 40px;
+    height: 40px;
+    border: 0;
+    border-radius: 999px;
+    background: linear-gradient(to top right, var(--plum-a), var(--plum-b));
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .ychat__send:disabled { opacity: 0.5; cursor: default; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .ychat__msg { animation: ychat-fade 0.2s ease both; }
+  }
+  @keyframes ychat-fade {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: none; }
+  }
+</style>
+
+<script>
+  import { renderMarkdown } from "../lib/miniMarkdown";
+
+  type Msg = { source: "USER" | "BOT"; text: string; timestamp: string };
+
+  document.querySelectorAll<HTMLElement>("[data-ychat]").forEach((root) => {
+    const cfg = JSON.parse(root.dataset.config || "{}");
+    const launch = root.querySelector<HTMLButtonElement>("[data-ychat-launch]")!;
+    const panel = root.querySelector<HTMLElement>("[data-ychat-panel]")!;
+    const closeBtn = root.querySelector<HTMLButtonElement>("[data-ychat-close]")!;
+    const restartBtn = root.querySelector<HTMLButtonElement>("[data-ychat-restart]")!;
+    const log = root.querySelector<HTMLElement>("[data-ychat-log]")!;
+    const suggestionBox = root.querySelector<HTMLElement>("[data-ychat-suggestions]")!;
+    const form = root.querySelector<HTMLFormElement>("[data-ychat-form]")!;
+    const input = form.querySelector<HTMLInputElement>("input")!;
+    const send = form.querySelector<HTMLButtonElement>("button")!;
+    const suggestions = Array.from(
+      root.querySelectorAll<HTMLButtonElement>("[data-ychat-suggestion]"),
+    );
+
+    const STORE = "ychat:" + cfg.botId;
+    let messages: Msg[] = [];
+    let conversationId: string | null = null;
+    let busy = false;
+
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(STORE) || "null");
+      if (saved) {
+        messages = saved.messages || [];
+        conversationId = saved.conversationId || null;
+      }
+    } catch {}
+
+    function persist() {
+      try {
+        sessionStorage.setItem(STORE, JSON.stringify({ messages, conversationId }));
+      } catch {}
+    }
+
+    function addBubble(role: "user" | "bot", html: string, extraClass = "") {
+      const wrap = document.createElement("div");
+      wrap.className = `ychat__msg ychat__msg--${role}`;
+      const bubble = document.createElement("div");
+      bubble.className = "ychat__bubble" + (extraClass ? " " + extraClass : "");
+      bubble.innerHTML = html;
+      wrap.appendChild(bubble);
+      log.appendChild(wrap);
+      log.scrollTop = log.scrollHeight;
+      return bubble;
+    }
+
+    function renderHistory() {
+      log.innerHTML = "";
+      addBubble("bot", escapeHtml(cfg.greeting));
+      for (const m of messages) {
+        addBubble(
+          m.source === "USER" ? "user" : "bot",
+          m.source === "USER" ? escapeHtml(m.text) : renderMarkdown(m.text),
+        );
+      }
+    }
+
+    function escapeHtml(s: string) {
+      return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function setOpen(open: boolean) {
+      panel.hidden = !open;
+      root.toggleAttribute("data-open", open);
+      launch.setAttribute("aria-expanded", String(open));
+      if (open) {
+        input.focus();
+        log.scrollTop = log.scrollHeight;
+      }
+    }
+
+    function updateSuggestions() {
+      suggestionBox.hidden = messages.length > 0;
+    }
+
+    async function ask(text: string) {
+      text = text.trim();
+      if (!text || busy) return;
+      busy = true;
+      send.disabled = true;
+      suggestions.forEach((s) => (s.disabled = true));
+
+      const now = new Date().toISOString();
+      messages.push({ source: "USER", text, timestamp: now });
+      addBubble("user", escapeHtml(text));
+      updateSuggestions();
+      const typing = addBubble("bot", "…", "ychat__bubble--typing");
+
+      try {
+        const url = `${cfg.apiDomain}/v2/accounts/me/chat/${cfg.botId}/message?v=${cfg.version}&api_key=${cfg.apiKey}`;
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messages, conversationId }),
+        });
+        const data = await res.json();
+        const err = data?.meta?.errors?.[0]?.message;
+        if (!res.ok || err) throw new Error(err || `Chat request failed (${res.status}).`);
+
+        const reply = data.response?.message;
+        conversationId = data.response?.conversationId ?? conversationId;
+        typing.classList.remove("ychat__bubble--typing");
+        typing.innerHTML = renderMarkdown(reply?.text || "…");
+        if (reply) {
+          messages.push({
+            source: "BOT",
+            text: reply.text,
+            timestamp: reply.timestamp || new Date().toISOString(),
+          });
+        }
+        persist();
+      } catch (e) {
+        typing.classList.remove("ychat__bubble--typing");
+        typing.classList.add("ychat__bubble--error");
+        typing.textContent =
+          e instanceof Error ? e.message : "Something went wrong. Please try again.";
+        messages.pop(); // drop the unanswered user turn from history
+      } finally {
+        busy = false;
+        send.disabled = false;
+        suggestions.forEach((s) => (s.disabled = false));
+        log.scrollTop = log.scrollHeight;
+      }
+    }
+
+    function restart() {
+      messages = [];
+      conversationId = null;
+      persist();
+      renderHistory();
+      updateSuggestions();
+      input.focus();
+    }
+
+    launch.addEventListener("click", () => setOpen(true));
+    closeBtn.addEventListener("click", () => setOpen(false));
+    restartBtn.addEventListener("click", restart);
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const v = input.value;
+      input.value = "";
+      ask(v);
+    });
+    suggestions.forEach((chip) =>
+      chip.addEventListener("click", () => ask(chip.dataset.ychatSuggestion || "")),
+    );
+
+    if (messages.length) renderHistory();
+    updateSuggestions();
+  });
+</script>

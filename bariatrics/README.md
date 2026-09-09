@@ -35,6 +35,15 @@ npm run build && npx wrangler dev   # http://localhost:8788
   Cloudflare Worker route. `@astrojs/cloudflare` emits the Worker; the rest of
   `dist/` is served as static assets.
 
+## Yext Chat ("eCommunity AI Chat Bot")
+
+`src/components/YextChat.astro` is the floating chat widget (rebuilt from the
+Yext Chat pop-up on ecommunity.com). It calls the Yext Chat API directly from
+the browser — `POST {apiDomain}/v2/accounts/me/chat/{botId}/message` — using a
+**public** client API key (`bot chatbotv2`), exactly as the live site exposes
+it. No server route or secret involved. Config (key, bot id, title, suggested
+prompts) is in the component frontmatter.
+
 ## Databricks Genie ("Information at a glance")
 
 `src/pages/api/genie.ts` authenticates a Microsoft Entra service principal

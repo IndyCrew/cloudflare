@@ -1,4 +1,6 @@
 ---
+import YextChat from "../components/YextChat.astro";
+
 interface Props {
   title: string;
   description?: string;
@@ -23,6 +25,7 @@ const { title, description } = Astro.props;
   </head>
   <body>
     <slot />
+    <YextChat />
   </body>
 </html>
 
