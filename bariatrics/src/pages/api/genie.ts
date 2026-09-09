@@ -1,18 +1,23 @@
 /**
- * POST /api/genie   { "question": "..." , "conversationId"?: "..." }
+ * POST /api/genie   { "question": "...", "conversationId"?: "..." }
  *
  * Proxies a question to a Databricks Genie space using a Microsoft Entra
- * (Azure AD) service principal. The client secret is the only value that must
- * be supplied as an encrypted environment variable / secret; the rest are
- * non-secret identifiers and fall back to the values below.
+ * (Azure AD) service principal. Runs as a Cloudflare Worker route (the rest of
+ * the site is prerendered).
  *
- * Set in Cloudflare Pages → Settings → Variables and Secrets:
- *   DATABRICKS_CLIENT_SECRET   (secret / encrypted)   — required
- *   DATABRICKS_TENANT_ID       (plain, optional override)
- *   DATABRICKS_CLIENT_ID       (plain, optional override)
- *   DATABRICKS_WORKSPACE_URL   (plain, optional override)
- *   DATABRICKS_GENIE_SPACE_ID  (plain, optional override)
+ * Configure on the Worker (dashboard → Settings → Variables and Secrets, or
+ * `wrangler secret put`):
+ *   DATABRICKS_CLIENT_SECRET    secret / encrypted — required
+ *   DATABRICKS_TENANT_ID        plaintext, optional override
+ *   DATABRICKS_CLIENT_ID        plaintext, optional override
+ *   DATABRICKS_WORKSPACE_URL    plaintext, optional override
+ *   DATABRICKS_GENIE_SPACE_ID   plaintext, optional override
+ *   DATABRICKS_GENIE_MODE       "CHAT" (default) or "AGENT"
  */
+import type { APIRoute } from "astro";
+import { env as runtimeEnv } from "cloudflare:workers";
+
+export const prerender = false;
 
 interface Env {
   DATABRICKS_CLIENT_SECRET?: string;
@@ -20,13 +25,8 @@ interface Env {
   DATABRICKS_CLIENT_ID?: string;
   DATABRICKS_WORKSPACE_URL?: string;
   DATABRICKS_GENIE_SPACE_ID?: string;
-  DATABRICKS_GENIE_MODE?: string; // "AGENT" (default) or "CHAT"
+  DATABRICKS_GENIE_MODE?: string;
 }
-
-type PagesFunction<E = unknown> = (context: {
-  request: Request;
-  env: E;
-}) => Response | Promise<Response>;
 
 // Fixed Azure application ID for the Azure Databricks programmatic-access API.
 const DATABRICKS_RESOURCE_ID = "2ff814a6-3304-4ab8-85cb-cd0e6f879c1d";
@@ -50,14 +50,18 @@ const json = (body: unknown, status = 200) =>
     headers: { "Content-Type": "application/json", ...CORS },
   });
 
+class HttpError extends Error {
+  constructor(public status: number, message: string) {
+    super(message);
+  }
+}
+
 // Cheap per-isolate token cache. Not durable, just avoids re-auth on bursts.
 let cachedToken: { value: string; expiresAt: number } | null = null;
 
 async function getToken(env: Env): Promise<string> {
   const now = Date.now();
-  if (cachedToken && cachedToken.expiresAt > now + 60_000) {
-    return cachedToken.value;
-  }
+  if (cachedToken && cachedToken.expiresAt > now + 60_000) return cachedToken.value;
 
   const tenantId = env.DATABRICKS_TENANT_ID || DEFAULTS.tenantId;
   const clientId = env.DATABRICKS_CLIENT_ID || DEFAULTS.clientId;
@@ -79,7 +83,6 @@ async function getToken(env: Env): Promise<string> {
       }),
     },
   );
-
   if (!res.ok) {
     throw new HttpError(502, `Azure AD token request failed (${res.status}).`);
   }
@@ -89,12 +92,6 @@ async function getToken(env: Env): Promise<string> {
     expiresAt: now + (data.expires_in ?? 3600) * 1000,
   };
   return cachedToken.value;
-}
-
-class HttpError extends Error {
-  constructor(public status: number, message: string) {
-    super(message);
-  }
 }
 
 interface GenieMessage {
@@ -125,10 +122,7 @@ async function genieFetch(
   });
   if (!res.ok) {
     const detail = await res.text();
-    throw new HttpError(
-      res.status === 401 || res.status === 403 ? 502 : 502,
-      `Genie API ${res.status}: ${detail.slice(0, 300)}`,
-    );
+    throw new HttpError(502, `Genie API ${res.status}: ${detail.slice(0, 300)}`);
   }
   return res.json();
 }
@@ -168,10 +162,12 @@ async function pollMessage(
   throw new HttpError(504, "Genie took too long to respond.");
 }
 
-export const onRequestOptions: PagesFunction = () =>
+export const OPTIONS: APIRoute = () =>
   new Response(null, { status: 204, headers: CORS });
 
-export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
+export const POST: APIRoute = async ({ request }) => {
+  const env = runtimeEnv as unknown as Env;
+
   let body: { question?: string; conversationId?: string };
   try {
     body = await request.json();
@@ -193,7 +189,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     const token = await getToken(env);
 
     let conversationId = body.conversationId;
-    let messageId: string;
+    let messageId: string | undefined;
 
     if (conversationId) {
       const created = await genieFetch(

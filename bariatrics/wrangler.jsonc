@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "cloudflare",
+  "compatibility_date": "2026-09-09",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true }
+  // @astrojs/cloudflare v14 supplies the Worker entrypoint and assets config
+  // automatically — no "main" / "assets" fields needed here.
+  //
+  // Secret (set with `wrangler secret put` or in the dashboard, never here):
+  //   DATABRICKS_CLIENT_SECRET
+  // Optional plaintext overrides (here in "vars", or in the dashboard):
+  //   DATABRICKS_TENANT_ID, DATABRICKS_CLIENT_ID, DATABRICKS_WORKSPACE_URL,
+  //   DATABRICKS_GENIE_SPACE_ID, DATABRICKS_GENIE_MODE
+}

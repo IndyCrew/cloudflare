@@ -1,8 +1,9 @@
-# CHN Bariatric page — Cloudflare Pages test
+# CHN Bariatric page — Cloudflare Workers test
 
-A static rebuild of the Community Health Network
+A rebuild of the Community Health Network
 ["Bariatric and Medical Weight Loss Services"](https://www.ecommunity.com/services/community-bariatric-and-medical-weight-loss-services)
-page, built with [Astro](https://astro.build) and deployed on Cloudflare Pages.
+page, built with [Astro](https://astro.build) and deployed to Cloudflare
+Workers (static assets + one server route).
 
 This is a deployment pipeline test, not the official site.
 
@@ -14,50 +15,59 @@ repo. Run all commands from `bariatrics/`.
 ```bash
 cd bariatrics
 npm install
-npm run dev      # http://localhost:4321  (static pages only)
-npm run build    # outputs static site to ./dist
+cp .dev.vars.example .dev.vars   # then paste the Databricks client secret
+
+npm run dev      # http://localhost:4321 — pages + /api/genie (via platformProxy)
+npm run build    # -> ./dist  (dist/client static assets, dist/server worker)
 ```
 
-The "Information at a glance" panel calls `/api/genie`, a Cloudflare Pages
-Function (`functions/api/genie.ts`). `astro dev` does not run it — to exercise
-the function locally, build first and serve with Wrangler:
+`npm run dev` serves the API route too, reading secrets from `.dev.vars`. To run
+it under the real Workers runtime instead:
 
 ```bash
-npm run build
-cp .dev.vars.example .dev.vars   # then paste the Databricks client secret
-npx wrangler pages dev dist --compatibility-date=2026-09-01   # http://localhost:8788
+npm run build && npx wrangler dev   # http://localhost:8788
 ```
+
+## Architecture
+
+- `src/pages/index.astro` is prerendered (static).
+- `src/pages/api/genie.ts` sets `export const prerender = false` and runs as a
+  Cloudflare Worker route. `@astrojs/cloudflare` emits the Worker; the rest of
+  `dist/` is served as static assets.
 
 ## Databricks Genie ("Information at a glance")
 
-`functions/api/genie.ts` authenticates a Microsoft Entra service principal and
-proxies questions to a Databricks Genie space. All identifiers have defaults
-baked into the function; **only the client secret must be configured**:
+`src/pages/api/genie.ts` authenticates a Microsoft Entra service principal
+(`client_credentials`, scope `2ff814a6-…/.default`) and proxies questions to a
+Databricks Genie space: `start-conversation` → poll the message → return the
+`attachments[].text.content`. The tenant ID, client ID, workspace URL and space
+ID have defaults baked in; **only the client secret must be configured**.
 
 | Variable | Where | Notes |
 | --- | --- | --- |
-| `DATABRICKS_CLIENT_SECRET` | Pages → Settings → Variables and Secrets → **Secret** | required |
+| `DATABRICKS_CLIENT_SECRET` | Worker → Settings → Variables and Secrets → **Secret (encrypted)** | required |
 | `DATABRICKS_TENANT_ID` | optional plaintext var | overrides the default |
 | `DATABRICKS_CLIENT_ID` | optional plaintext var | overrides the default |
 | `DATABRICKS_WORKSPACE_URL` | optional plaintext var | overrides the default |
 | `DATABRICKS_GENIE_SPACE_ID` | optional plaintext var | overrides the default |
+| `DATABRICKS_GENIE_MODE` | optional | `CHAT` (default) or `AGENT` |
 
-Set the secret for **both** Production and Preview environments, then redeploy.
+Genie in this space answers from Community's website-content dataset, so it
+handles content questions well and declines pure medical questions. Its answer
+quality/consistency is tuned on the Databricks side, not here.
 
-## Deploy (Cloudflare Pages)
+## Deploy (Cloudflare Workers, connected to Git)
 
-Connected repo: `IndyCrew/cloudflare`. Cloudflare Pages build settings:
+Connected repo: `IndyCrew/cloudflare`. Worker build settings:
 
-| Setting                     | Value           |
-| --------------------------- | --------------- |
-| Root directory (advanced)   | `bariatrics`    |
-| Framework preset            | Astro           |
-| Build command               | `npm run build` |
-| Build output directory      | `dist`          |
-| Node version (`NODE_VERSION`) | `20` or newer |
+| Setting | Value |
+| --- | --- |
+| Root directory | `bariatrics` |
+| Build command | `npm run build` |
+| Deploy command | `npx wrangler deploy` |
 
-The **Root directory** setting is what makes Cloudflare build from
-`bariatrics/` instead of the repo root.
+`wrangler.jsonc` pins the Worker name (`cloudflare`), `compatibility_date`, and
+`nodejs_compat`. `@astrojs/cloudflare` v14 supplies the Worker entrypoint and
+assets binding — no `main`/`assets` fields needed.
 
-Every push to the production branch triggers a build and deploy; other
-branches get preview URLs.
+Every push to `main` triggers a build + deploy.
