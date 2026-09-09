@@ -1,0 +1,56 @@
+---
+const year = new Date().getFullYear();
+---
+<footer class="site-footer">
+  <div class="wrap footer-grid">
+    <div>
+      <p class="footer-brand">Community Health Network</p>
+      <p class="footer-fine">
+        Rebuilt as a Cloudflare Pages deployment test. Not the official Community
+        Health Network website.
+      </p>
+    </div>
+    <nav aria-label="Footer">
+      <a href="https://www.ecommunity.com/services/community-bariatric-and-medical-weight-loss-services">Bariatric Services</a>
+      <a href="https://www.ecommunity.com/locations/836">Locations</a>
+      <a href="https://www.ecommunity.com/providers/836">Providers</a>
+      <a href="https://www.ecommunity.com/services/bariatrics-and-medical-weight-loss/faq">FAQ</a>
+    </nav>
+  </div>
+  <div class="wrap footer-legal">
+    <p>&copy; {year} Community Health Network. All rights reserved.</p>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    background: #2f3a42;
+    color: #d8dee2;
+    padding-block: 2.5rem 1.5rem;
+    margin-top: 2rem;
+  }
+  .footer-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    justify-content: space-between;
+  }
+  .footer-brand {
+    font-family: var(--serif);
+    font-size: 1.1rem;
+    margin: 0 0 0.5rem;
+    color: #fff;
+  }
+  .footer-fine { font-size: 0.85rem; color: #9aa7ae; max-width: 42ch; }
+  .site-footer nav { display: flex; flex-direction: column; gap: 0.5rem; }
+  .site-footer a { color: #d8dee2; text-decoration: none; font-size: 0.9rem; }
+  .site-footer a:hover { color: #fff; text-decoration: underline; }
+  .footer-legal {
+    margin-top: 2rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    font-size: 0.8rem;
+    color: #9aa7ae;
+  }
+  .footer-legal p { margin: 0; }
+</style>

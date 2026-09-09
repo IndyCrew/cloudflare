@@ -1,0 +1,336 @@
+---
+import Base from "../layouts/Base.astro";
+import SiteHeader from "../components/SiteHeader.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+
+const BASE = "https://www.ecommunity.com";
+
+const services = [
+  {
+    title: "Gastric Sleeve",
+    body: "The gastric sleeve procedure for weight loss is a restrictive procedure that reduces the size of the stomach so that you feel full with smaller portions.",
+    href: `${BASE}/services/community-bariatric-and-medical-weight-loss-services/gastric-sleeve`,
+  },
+  {
+    title: "Medical Weight Loss",
+    body: "If you or someone you know struggles with their weight or has been told by a physician to lose weight, we can help. Our non-surgical weight loss and wellness program is for individuals who seek to lose weight—from 10 lbs to hundreds of pounds.",
+    href: `${BASE}/services/community-bariatric-and-medical-weight-loss-services/medical-weight-loss`,
+  },
+  {
+    title: "Roux-en-Y Gastric Bypass",
+    body: "During the procedure, the stomach is divided into two pouches to limit food intake and redirect digestion to reduce absorption of fat and calories in food.",
+    href: `${BASE}/services/community-bariatric-and-medical-weight-loss-services/roux-en-y-gastric-bypass`,
+  },
+];
+
+const locations = [
+  {
+    name: "Bariatrics and Medical Weight Loss - South",
+    address: ["8711 South US 31", "Indianapolis, IN 46227"],
+    phone: "317-887-7771",
+    href: `${BASE}/locations/community-bariatrics-medical-weight-loss-south`,
+    img: `${BASE}/sites/default/files/styles/thumb_350x198/public/location/2021-09/Community-Hospital-South-exterior2018-1600.jpg?itok=D0xVhtgb`,
+  },
+  {
+    name: "Bariatrics and Medical Weight Loss - North",
+    address: ["7250 Clearvista Parkway, Suite 100", "Indianapolis, IN 46256"],
+    phone: "317-621-7771",
+    href: `${BASE}/locations/community-bariatrics-medical-weight-loss-north`,
+    img: `${BASE}/sites/default/files/styles/thumb_350x198/public/location/2016-09/CommunityHospitalNorth2014signage5.jpg?itok=3rmQd3v-`,
+  },
+];
+
+const providers = [
+  {
+    name: "Myungwon Christine Chang, MD",
+    href: `${BASE}/provider/MyungwonChangMD/1417248477`,
+    img: `${BASE}/sites/default/files/styles/person_group_thumb/public/doctors/profile_images/34086.jpg?itok=S-GqMSCI`,
+  },
+  {
+    name: "Eileen Banguis Thomason, MD",
+    href: `${BASE}/provider/EileenThomasonMD/1467455931`,
+    img: `${BASE}/sites/default/files/styles/person_group_thumb/public/doctors/profile_images/4746.jpg?itok=d26hoIii`,
+  },
+  {
+    name: "Ambar Banerjee, MD",
+    href: `${BASE}/provider/AmbarBanerjeeMD/1831339720`,
+    img: `${BASE}/sites/default/files/styles/person_group_thumb/public/doctors/profile_images/24999.jpg?itok=BZfRYvs_`,
+  },
+  {
+    name: "RoseMarie Jones, MD",
+    href: `${BASE}/provider/RosemarieJonesMD/1225074636`,
+    img: null,
+  },
+];
+
+const title = "Bariatric and Medical Weight Loss Services | Community Health Network";
+const description =
+  "Community bariatric services offers surgical weight loss options, including gastric sleeve and roux-en-y gastric bypass, to help you transform your life through long-term weight loss. Medical weight loss options are also available for those who desire a non-surgical approach.";
+---
+
+<Base title={title} description={description}>
+  <SiteHeader />
+
+  <main>
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero__media" aria-hidden="true"></div>
+      <div class="wrap hero__inner">
+        <h1>Bariatric and Medical Weight Loss Services</h1>
+        <p class="lead">
+          Community bariatric services offers surgical weight loss options,
+          including gastric sleeve and roux-en-y gastric bypass, to help you
+          transform your life through long-term weight loss. Medical weight loss
+          options are also available for those who desire a non-surgical approach.
+        </p>
+      </div>
+    </section>
+
+    <!-- Assessment CTA -->
+    <section class="section section--band cta-band">
+      <div class="wrap cta-band__inner">
+        <div class="cta-band__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="6" y="2" width="12" height="20" rx="2" />
+            <path d="M9.5 12.5l1.8 1.8 3.5-3.8" />
+          </svg>
+        </div>
+        <h2>Ready to take the first step?</h2>
+        <p>
+          Find out if you're a candidate for surgical or physician-supported
+          weight loss with our convenient, personalized online assessment tool.
+          Click below to get started!
+        </p>
+        <a class="btn" href={`${BASE}/services/community-bariatric-and-medical-weight-loss-services/bariatric-hra`}>
+          Get Started
+        </a>
+      </div>
+    </section>
+
+    <!-- Services and Programs -->
+    <section class="section section--surface" id="services">
+      <div class="wrap">
+        <h2>Services and Programs</h2>
+        <p>
+          According to the{" "}
+          <a href="https://asmbs.org/">American Society for Metabolic and Bariatric Surgery</a>, there
+          are two basic approaches to weight loss surgery for{" "}
+          <a href={`${BASE}/services/community-bariatric-and-medical-weight-loss-services/what-is-obesity`}>obesity</a>.
+          Both approaches can be combined in weight loss surgery, such as gastric
+          bypass.
+        </p>
+        <ul class="approach-list">
+          <li>
+            <strong>Restrictive procedures</strong> that decrease food intake.
+          </li>
+          <li>
+            <strong>Malabsorptive procedures</strong> that alter digestion, thus
+            causing the food to be poorly digested and incompletely absorbed so
+            that it is eliminated in the stool.
+          </li>
+        </ul>
+
+        <div class="cards">
+          {
+            services.map((s) => (
+              <article class="card">
+                <h3>{s.title}</h3>
+                <p>{s.body}</p>
+                <a class="card__link" href={s.href}>Learn More &rarr;</a>
+              </article>
+            ))
+          }
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section section--band" id="faq">
+      <div class="wrap">
+        <h2>Frequently Asked Questions</h2>
+        <p>
+          Community also offers non-surgical medical weight loss programs for those
+          who desire to lose weight with the assistance of our bariatricians.
+        </p>
+        <a class="btn" href={`${BASE}/services/bariatrics-and-medical-weight-loss/faq`}>
+          Read the FAQ
+        </a>
+      </div>
+    </section>
+
+    <!-- Support -->
+    <section class="section section--surface" id="support">
+      <div class="wrap">
+        <h2>Bariatric Surgery Support</h2>
+        <p>
+          Bariatric support groups are led by members of the bariatric services
+          teams to provide additional support for patients undergoing lifestyle
+          changes before and after bariatric surgery.
+        </p>
+        <a class="card__link" href={`${BASE}/services/bariatrics-and-medical-weight-loss/support-groups`}>
+          Support Groups By Location &rarr;
+        </a>
+      </div>
+    </section>
+
+    <!-- Locations -->
+    <section class="section section--band" id="locations">
+      <div class="wrap">
+        <h2>Bariatric and Medical Weight Loss Services Locations</h2>
+        <div class="loc-grid">
+          {
+            locations.map((l) => (
+              <article class="loc">
+                <img src={l.img} alt={l.name} loading="lazy" width="350" height="198" />
+                <div class="loc__body">
+                  <h3><a href={l.href}>{l.name}</a></h3>
+                  <address>
+                    {l.address.map((line) => <span>{line}<br /></span>)}
+                  </address>
+                  <a class="loc__phone" href={`tel:${l.phone}`}>{l.phone}</a>
+                </div>
+              </article>
+            ))
+          }
+        </div>
+        <a class="btn" href={`${BASE}/locations/836`}>See All Locations</a>
+      </div>
+    </section>
+
+    <!-- Providers -->
+    <section class="section section--surface" id="providers">
+      <div class="wrap">
+        <h2>Bariatric and Medical Weight Loss Services Providers</h2>
+        <div class="prov-grid">
+          {
+            providers.map((p) => (
+              <article class="prov">
+                {
+                  p.img ? (
+                    <img src={p.img} alt={p.name} loading="lazy" width="140" height="140" />
+                  ) : (
+                    <span class="prov__initials" aria-hidden="true">
+                      {p.name.split(" ").slice(0, 2).map((n) => n[0]).join("")}
+                    </span>
+                  )
+                }
+                <h3>{p.name}</h3>
+                <a class="card__link" href={p.href}>View Profile &rarr;</a>
+              </article>
+            ))
+          }
+        </div>
+        <a class="btn" href={`${BASE}/providers/836`}>See All Providers</a>
+      </div>
+    </section>
+  </main>
+
+  <SiteFooter />
+</Base>
+
+<style>
+  /* Hero */
+  .hero { position: relative; background: #2f3a42; color: #fff; }
+  .hero__media {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(180deg, rgba(47, 58, 66, 0.35), rgba(47, 58, 66, 0.85)),
+      url("https://www.ecommunity.com/sites/default/files/styles/location_hero_full/public/services/2019-03/bariatric-weight-loss-healthy-woman-2019-hero.jpg?itok=23EzEjiv")
+        center / cover no-repeat;
+  }
+  .hero__inner { position: relative; padding-block: clamp(3rem, 9vw, 6.5rem); max-width: 760px; }
+  .hero h1 { color: #fff; }
+  .hero .lead { color: rgba(255, 255, 255, 0.92); }
+
+  .approach-list {
+    margin: 1.25rem 0 0;
+    padding-left: 1.1rem;
+  }
+  .approach-list li { margin-bottom: 0.6rem; }
+
+  /* Assessment band */
+  .cta-band__inner { text-align: center; max-width: 620px; margin-inline: auto; }
+  .cta-band__icon { color: var(--accent); display: flex; justify-content: center; margin-bottom: 0.5rem; }
+
+  /* Service cards */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-top: 4px solid var(--accent);
+    border-radius: 6px;
+    padding: 1.5rem;
+  }
+  .card p { font-size: 0.95rem; color: var(--muted); }
+  .card__link {
+    font-weight: 600;
+    text-decoration: none;
+    font-size: 0.9rem;
+  }
+  .card__link:hover { text-decoration: underline; }
+
+  /* Locations */
+  .loc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin: 1.5rem 0 2rem;
+  }
+  .loc {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .loc img { width: 100%; height: 180px; object-fit: cover; display: block; }
+  .loc__body { padding: 1.25rem; }
+  .loc__body h3 { margin-bottom: 0.5rem; }
+  .loc__body h3 a { text-decoration: none; color: var(--heading); }
+  .loc__body h3 a:hover { color: var(--accent); }
+  .loc address { font-style: normal; color: var(--muted); font-size: 0.95rem; margin-bottom: 0.5rem; }
+  .loc__phone { font-weight: 700; text-decoration: none; }
+
+  /* Providers */
+  .prov-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1.5rem;
+    margin: 1.5rem 0 2rem;
+  }
+  .prov {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 1.5rem;
+    text-align: center;
+  }
+  .prov img,
+  .prov__initials {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin: 0 auto 0.9rem;
+    display: block;
+    background: var(--band);
+  }
+  .prov__initials {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--serif);
+    font-size: 2rem;
+    color: var(--accent);
+    background: #e3edf2;
+  }
+  .prov h3 { font-size: 1.05rem; min-height: 2.6em; }
+  .prov .card__link { text-decoration: none; font-weight: 600; font-size: 0.9rem; }
+</style>
