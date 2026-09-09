@@ -20,6 +20,7 @@ interface Env {
   DATABRICKS_CLIENT_ID?: string;
   DATABRICKS_WORKSPACE_URL?: string;
   DATABRICKS_GENIE_SPACE_ID?: string;
+  DATABRICKS_GENIE_MODE?: string; // "AGENT" (default) or "CHAT"
 }
 
 type PagesFunction<E = unknown> = (context: {
@@ -149,7 +150,7 @@ async function pollMessage(
   conversationId: string,
   messageId: string,
 ): Promise<GenieMessage> {
-  const deadline = Date.now() + 25_000;
+  const deadline = Date.now() + 55_000;
   let delay = 800;
   while (Date.now() < deadline) {
     const msg = (await genieFetch(
@@ -183,6 +184,10 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   if (question.length > 1000) return json({ error: "Question is too long." }, 400);
 
   const spaceId = env.DATABRICKS_GENIE_SPACE_ID || DEFAULTS.spaceId;
+  // CHAT = lightweight conversational retrieval over the space's content
+  // (better fit for this public panel). Set DATABRICKS_GENIE_MODE=AGENT for
+  // Genie's full tool/SQL reasoning path.
+  const mode = (env.DATABRICKS_GENIE_MODE || "CHAT").toUpperCase();
 
   try {
     const token = await getToken(env);
@@ -203,7 +208,10 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
         env,
         token,
         `/spaces/${spaceId}/start-conversation`,
-        { method: "POST", body: JSON.stringify({ content: question }) },
+        {
+          method: "POST",
+          body: JSON.stringify({ content: question, conversation_type: mode }),
+        },
       );
       conversationId = started.conversation_id;
       messageId =

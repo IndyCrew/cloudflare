@@ -6,10 +6,10 @@ const summary =
   "Bariatric surgery encompasses various surgical procedures aimed at aiding weight loss for individuals suffering from obesity. Common operations include the gastric sleeve, Roux-en-Y gastric bypass, and adjustable gastric banding. These procedures reduce stomach size or alter digestive pathways, leading to significant weight loss. At Community Bariatric Surgeons, specialists employ minimally invasive techniques and provide personalized post-operative care to enhance patient outcomes.";
 
 const suggestions = [
-  "How do I know if I'm obese?",
+  "What is obesity?",
   "Do you offer non-surgical weight loss?",
   "What is a gastric bypass?",
-  "Do I go on a special diet after bariatric surgery?",
+  "Is there a special diet after bariatric surgery?",
 ];
 ---
 
@@ -146,14 +146,24 @@ const suggestions = [
 
   .iaag__answer {
     margin-top: 1.25rem;
-    padding: 1rem 1.1rem;
+    padding: 0.4rem 1.1rem;
     background: #f4f7f8;
     border-left: 3px solid var(--accent);
     border-radius: 0 5px 5px 0;
-    white-space: pre-wrap;
     font-size: 0.97rem;
   }
+  .iaag__answer :global(p) { margin: 0.7rem 0; }
+  .iaag__answer :global(ul) { margin: 0.7rem 0; padding-left: 1.2rem; }
+  .iaag__answer :global(li) { margin: 0.2rem 0; }
+  .iaag__answer :global(code) {
+    background: #e6ebee;
+    padding: 0.05rem 0.3rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+    word-break: break-word;
+  }
   .iaag__answer[data-state="loading"] { color: var(--muted); font-style: italic; }
+  .iaag__answer[data-state="loading"] :global(p) { margin: 0.7rem 0; }
   .iaag__answer[data-state="error"] {
     border-left-color: #b3261e;
     background: #fbeceb;
@@ -181,6 +191,30 @@ const suggestions = [
     let conversationId: string | null = null;
     let busy = false;
 
+    // Minimal + safe markdown: escape, then **bold**, `code`, bullets, paragraphs.
+    function render(md: string): string {
+      const esc = md
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+      const inline = (s: string) =>
+        s
+          .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+          .replace(/`([^`]+)`/g, "<code>$1</code>");
+      return esc
+        .split(/\n{2,}/)
+        .map((block) => {
+          const lines = block.split("\n");
+          if (lines.every((l) => /^\s*[-*]\s+/.test(l))) {
+            return `<ul>${lines
+              .map((l) => `<li>${inline(l.replace(/^\s*[-*]\s+/, ""))}</li>`)
+              .join("")}</ul>`;
+          }
+          return `<p>${inline(block).replace(/\n/g, "<br>")}</p>`;
+        })
+        .join("");
+    }
+
     toggle.addEventListener("click", () => {
       const open = panel.hasAttribute("hidden");
       panel.toggleAttribute("hidden", !open);
@@ -207,7 +241,7 @@ const suggestions = [
         if (!res.ok) throw new Error(data.error || `Request failed (${res.status}).`);
         conversationId = data.conversationId ?? conversationId;
         answer.dataset.state = "ok";
-        answer.textContent = data.answer;
+        answer.innerHTML = render(data.answer);
       } catch (err) {
         answer.dataset.state = "error";
         answer.textContent =
