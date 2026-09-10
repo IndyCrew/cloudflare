@@ -14,13 +14,15 @@ const suggestions = [
 ---
 
 <section class="iaag" data-iaag>
-  <div class="wrap iaag__bar">
-    <h2 class="iaag__title">Information at a glance</h2>
-    <button type="button" class="iaag__toggle" data-iaag-toggle aria-expanded="false" aria-controls="iaag-panel">
-      <span data-iaag-label>View</span>
-      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </button>
-  </div>
+  <button type="button" class="iaag__bar" data-iaag-toggle aria-expanded="false" aria-controls="iaag-panel">
+    <span class="wrap iaag__bar-inner">
+      <span class="iaag__title">Information at a glance</span>
+      <span class="iaag__toggle">
+        <span data-iaag-label>View</span>
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+    </span>
+  </button>
 
   <div class="iaag__panel" id="iaag-panel" data-iaag-panel hidden>
     <div class="wrap iaag__inner">
@@ -61,6 +63,22 @@ const suggestions = [
     border-bottom: 3px solid var(--accent);
   }
   .iaag__bar {
+    display: block;
+    width: 100%;
+    background: transparent;
+    border: 0;
+    color: #fff;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    padding: 0;
+  }
+  .iaag__bar:hover .iaag__toggle { text-decoration: underline; }
+  .iaag__bar:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: -3px;
+  }
+  .iaag__bar-inner {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -72,22 +90,17 @@ const suggestions = [
     color: #fff;
     font-size: 1.15rem;
     font-weight: 300;
-    margin: 0;
   }
   .iaag__toggle {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    background: transparent;
-    border: 0;
     color: #fff;
-    font: inherit;
     font-size: 0.95rem;
-    cursor: pointer;
-    padding: 0.25rem 0.25rem 0.25rem 0.5rem;
+    white-space: nowrap;
   }
   .iaag__toggle svg { transition: transform 0.2s ease; }
-  .iaag__toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+  .iaag__bar[aria-expanded="true"] .iaag__toggle svg { transform: rotate(180deg); }
 
   .iaag__panel {
     background: var(--surface);
