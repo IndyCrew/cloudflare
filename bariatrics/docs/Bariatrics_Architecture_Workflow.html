@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>CHN Bariatrics — Static Site, Edge Function &amp; Genie Architecture</title>
+<title>CHN Bariatrics — Static Site, Edge Function &amp; Dual AI Chat Architecture</title>
 <style>
   :root{
     --navy:#0b1f3a; --blue:#2563eb; --cyan:#06b6d4; --green:#16a34a; --amber:#f59e0b; --red:#dc2626; --slate:#475569; --light:#f8fafc; --card:#ffffff; --line:#cbd5e1;
@@ -26,39 +26,39 @@
 <body>
 <header class="hero">
   <div class="eyebrow">CHN Bariatrics | Engineering Overview</div>
-  <h1>CHN Bariatrics Static Site, Edge Function &amp; Genie Architecture</h1>
-  <p>How an Astro-built rebuild of the Community Health Network "Bariatric and Medical Weight Loss Services" page ships as prerendered HTML on Cloudflare's edge, with a single server route that bridges the public "Information at a glance" panel to an internal Databricks Genie space — without any credential ever reaching the browser.</p>
+  <h1>CHN Bariatrics Static Site, Edge Function &amp; Dual AI Chat Architecture</h1>
+  <p>How an Astro-built rebuild of the Community Health Network "Bariatric and Medical Weight Loss Services" page ships as prerendered HTML on Cloudflare's edge, and how <strong>two</strong> AI chat features — a Databricks Genie "Information at a glance" panel and a floating Yext chat bot — reach two different back ends through two deliberately different trust models.</p>
 </header>
 <main class="wrap">
   <section class="grid three section">
-    <div class="card"><div class="kpi">1</div><h3>Dynamic route</h3><p>Every page is prerendered to static HTML except <code>/api/genie</code>, which opts into server rendering with <code>export const prerender = false</code>.</p></div>
-    <div class="card"><div class="kpi">1</div><h3>Required secret</h3><p><code>DATABRICKS_CLIENT_SECRET</code>. Tenant, client, workspace, and space IDs all have safe defaults baked into the function.</p></div>
-    <div class="card"><div class="kpi">0</div><h3>Credentials in the browser</h3><p>The Azure service-principal secret and bearer token live only in the Worker. The browser sees a question and an answer string.</p></div>
+    <div class="card"><div class="kpi">2</div><h3>AI chat surfaces</h3><p>The Genie-backed "Information at a glance" panel and the floating "eCommunity AI Chat Bot" (Yext). Each answers questions; each talks to a different service.</p></div>
+    <div class="card"><div class="kpi">1</div><h3>Server route</h3><p>Only <code>/api/genie</code> runs code at request time. The Yext bot and every content page are pure static assets.</p></div>
+    <div class="card"><div class="kpi">1</div><h3>Secret</h3><p><code>DATABRICKS_CLIENT_SECRET</code>, held only in the Worker. Yext uses a public client key, so it needs no server and no secret.</p></div>
   </section>
 
   <section class="card section">
     <h2>1. Use Case Summary</h2>
-    <p><strong>Goal:</strong> Rebuild the public CHN Bariatric &amp; Medical Weight Loss marketing page as a fast, self-contained static site, and use it as a working deployment-pipeline test for Astro on Cloudflare — while adding one live feature (an AI "Information at a glance" Q&amp;A panel) that talks to an internal Databricks Genie space.</p>
-    <p><strong>Business value:</strong> The content pages cost nothing to serve — they are static assets on Cloudflare's CDN with no origin round-trip. The one interactive feature is isolated to a single edge function that holds the Azure credentials server-side, authenticates a service principal, and proxies vetted questions to Genie. Adding, changing, or removing the AI panel touches exactly one file and never affects how the rest of the site is built or served.</p>
-    <div class="callout success"><strong>Key property:</strong> Static content and the dynamic AI route are the same Astro project but independent at runtime — the CDN serves HTML with no code execution, and the Worker runs only when the panel calls <code>/api/genie</code>. Neither depends on the other being healthy.</div>
+    <p><strong>Goal:</strong> Rebuild the public CHN Bariatric &amp; Medical Weight Loss marketing page as a fast static site and a working deployment-pipeline test for Astro on Cloudflare — with two live AI features: an "Information at a glance" Q&amp;A panel wired to an internal Databricks Genie space, and a site-wide floating chat bot that mirrors the Yext Chat pop-up on the live <code>ecommunity.com</code>.</p>
+    <p><strong>Business value:</strong> Content pages cost nothing to serve — static assets on Cloudflare's CDN with no origin round-trip. The two AI features are isolated and independent: Genie's answers require an Azure credential, so that feature gets a single edge function that keeps the secret server-side; the Yext bot uses a published public key, so it runs entirely in the browser and adds zero server surface. Adding, changing, or removing either feature touches one component.</p>
+    <div class="callout success"><strong>Key property:</strong> Three runtime concerns — static content, the Genie edge function, and the Yext bot — share one Astro project but are decoupled at runtime. The CDN serves HTML with no code execution; the Worker runs only for <code>/api/genie</code>; the Yext widget talks straight to Yext's CDN. A failure in any one does not affect the others.</div>
   </section>
 
   <section class="grid two section">
     <div class="card">
       <h2>2. What the System Does</h2>
       <ul>
-        <li>Rebuilds the CHN Bariatrics landing page in Astro — header, hero, assessment CTA, services, FAQ, support, locations, and providers — as components under <code>src/</code>.</li>
+        <li>Rebuilds the CHN Bariatrics landing page in Astro — header, hero, assessment CTA, services, FAQ, support, locations, providers — as components under <code>src/</code>.</li>
         <li>Prerenders every route to static HTML/CSS at build time; images are hot-linked from <code>ecommunity.com</code>.</li>
-        <li>Ships one client-side island: the collapsible "Information at a glance" panel with suggestion chips and a free-text question box.</li>
-        <li>Exposes one server route, <code>/api/genie</code>, that runs as a Cloudflare Worker.</li>
-        <li>In that route: authenticates a Microsoft Entra (Azure AD) service principal via the client-credentials grant, caches the bearer token per isolate, and calls the Databricks Genie conversation API.</li>
-        <li>Starts or continues a Genie conversation, polls the message until <code>COMPLETED</code>, extracts the answer from its attachments, and returns <code>{ answer, conversationId }</code> as JSON.</li>
+        <li>Ships the collapsible <strong>"Information at a glance"</strong> panel (<code>InfoAtAGlance.astro</code>) with suggestion chips and a free-text box.</li>
+        <li>Exposes one server route, <code>/api/genie</code>, running as a Cloudflare Worker: authenticates a Microsoft Entra service principal (client-credentials), caches the bearer token per isolate, starts/continues a Databricks Genie conversation, polls to <code>COMPLETED</code>, and returns <code>{ answer, conversationId }</code>. A <code>GET</code> on the same route is a value-free readiness check.</li>
+        <li>Ships a site-wide floating <strong>Yext chat bot</strong> (<code>YextChat.astro</code>), rendered once in <code>Base.astro</code> so it appears on every page.</li>
+        <li>The Yext widget calls the Yext Chat API <em>directly from the browser</em> with a public client key, keeps its transcript in <code>sessionStorage</code>, and renders replies through the shared <code>miniMarkdown</code> helper.</li>
       </ul>
     </div>
     <div class="card">
       <h2>3. Project Context</h2>
-      <p>The project lives in the <code>bariatrics/</code> subdirectory of the <code>IndyCrew/cloudflare</code> repo; all commands run from there. Astro's Cloudflare adapter emits a static client bundle plus a Worker entry point. Data flows one direction: browser → edge function → Azure AD → Databricks Genie → back. There is no database, no CMS, and no server the site owns — Genie is the only upstream, reached only through the one function.</p>
-      <div class="legend"><span>Astro 7 (static output)</span><span>@astrojs/cloudflare adapter</span><span>Cloudflare Workers + static assets</span><span>Wrangler</span><span>Microsoft Entra service principal</span><span>Databricks Genie API</span></div>
+      <p>The project lives in the <code>bariatrics/</code> subdirectory of the <code>IndyCrew/cloudflare</code> repo; all commands run from there. Astro's Cloudflare adapter emits a static client bundle plus a Worker entry point. Non-secret Databricks IDs are committed in <code>wrangler.jsonc</code> <code>vars</code>; only <code>DATABRICKS_CLIENT_SECRET</code> is set as a secret. There is no database and no server the site owns — Genie is reached only through the one function, and Yext is reached only from the client.</p>
+      <div class="legend"><span>Astro 7 (static output)</span><span>@astrojs/cloudflare adapter</span><span>Cloudflare Workers + static assets</span><span>Wrangler</span><span>Microsoft Entra service principal</span><span>Databricks Genie API</span><span>Yext Chat API (client-side)</span></div>
     </div>
   </section>
 
@@ -68,129 +68,162 @@
       <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker></defs>
       <text x="30" y="34" class="diagram-title" font-size="24">Pipeline: Astro Source → Static Build → Cloudflare Edge (CDN + Worker)</text>
 
-      <rect x="35" y="80" width="200" height="110" rx="15" class="box-purple"/><text x="55" y="112" class="title-sm">src/ (Astro)</text><text x="55" y="137" class="label-sm">Pages, layout, components</text><text x="55" y="155" class="label-sm">InfoAtAGlance island</text><text x="55" y="173" class="label-sm">src/pages/api/genie.ts</text>
-      <line x1="235" y1="135" x2="315" y2="135" class="arrow"/>
+      <rect x="35" y="76" width="205" height="120" rx="15" class="box-purple"/><text x="55" y="106" class="title-sm">src/ (Astro)</text><text x="55" y="129" class="label-sm">Pages, layout, components</text><text x="55" y="147" class="label-sm">InfoAtAGlance · YextChat</text><text x="55" y="165" class="label-sm">lib/miniMarkdown.ts</text><text x="55" y="183" class="label-sm">pages/api/genie.ts</text>
+      <line x1="240" y1="135" x2="315" y2="135" class="arrow"/>
 
-      <rect x="315" y="80" width="210" height="110" rx="15" class="box-amber"/><text x="335" y="112" class="title-sm">npm run build</text><text x="335" y="137" class="label-sm">astro build +</text><text x="335" y="155" class="label-sm">@astrojs/cloudflare</text><text x="335" y="173" class="label-sm">adapter</text>
-      <line x1="525" y1="135" x2="605" y2="135" class="arrow"/>
+      <rect x="315" y="76" width="205" height="120" rx="15" class="box-amber"/><text x="335" y="106" class="title-sm">npm run build</text><text x="335" y="131" class="label-sm">astro build +</text><text x="335" y="149" class="label-sm">@astrojs/cloudflare</text><text x="335" y="167" class="label-sm">adapter</text>
+      <line x1="520" y1="135" x2="600" y2="135" class="arrow"/>
 
-      <rect x="605" y="80" width="215" height="110" rx="15" class="box"/><text x="625" y="112" class="title-sm">dist/</text><text x="625" y="137" class="label-sm">client/ — static HTML,</text><text x="625" y="155" class="label-sm">CSS, JS assets</text><text x="625" y="173" class="label-sm">server/ — Worker entry</text>
+      <rect x="600" y="76" width="215" height="120" rx="15" class="box"/><text x="620" y="106" class="title-sm">dist/</text><text x="620" y="131" class="label-sm">client/ — static HTML,</text><text x="620" y="149" class="label-sm">CSS, JS assets</text><text x="620" y="167" class="label-sm">server/ — Worker entry</text>
 
-      <line x1="820" y1="110" x2="900" y2="62" class="arrow"/>
-      <line x1="820" y1="160" x2="900" y2="205" class="arrow"/>
+      <line x1="815" y1="108" x2="895" y2="62" class="arrow"/>
+      <line x1="815" y1="162" x2="895" y2="205" class="arrow"/>
 
-      <rect x="900" y="22" width="195" height="82" rx="15" class="box-green"/><text x="920" y="52" class="title-sm">CDN assets</text><text x="920" y="77" class="label-sm">Prerendered pages,</text><text x="920" y="93" class="label-sm">served with no origin</text>
-      <rect x="900" y="182" width="195" height="82" rx="15" class="box-blue"/><text x="920" y="212" class="title-sm">Worker</text><text x="920" y="237" class="label-sm">Runs only for</text><text x="920" y="253" class="label-sm">/api/genie</text>
+      <rect x="895" y="22" width="200" height="82" rx="15" class="box-green"/><text x="915" y="52" class="title-sm">CDN assets</text><text x="915" y="77" class="label-sm">Prerendered pages +</text><text x="915" y="93" class="label-sm">Yext widget JS</text>
+      <rect x="895" y="182" width="200" height="82" rx="15" class="box-blue"/><text x="915" y="212" class="title-sm">Worker</text><text x="915" y="237" class="label-sm">Runs only for</text><text x="915" y="253" class="label-sm">/api/genie</text>
     </svg>
     <p class="source">Cloudflare Pages is wired to the connected repo with <strong>Root directory = <code>bariatrics</code></strong>, framework preset Astro, build command <code>npm run build</code>, output <code>dist</code>. Push to the production branch → build &amp; deploy; other branches → preview URLs. (<code>package.json</code> also carries a <code>wrangler deploy</code> script for direct Worker deploys.)</p>
   </section>
 
   <section class="card section">
-    <h2>5. Architecture Diagram — "Ask a Question" Request Lifecycle</h2>
-    <svg viewBox="0 0 1180 660" role="img" aria-label="Ask a question request lifecycle architecture diagram">
+    <h2>5. Architecture Diagram — Two AI Surfaces, Two Trust Models</h2>
+    <svg viewBox="0 0 1180 700" role="img" aria-label="Two AI chat surfaces architecture diagram">
       <defs><marker id="arrow2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker></defs>
-      <text x="30" y="36" class="diagram-title" font-size="24">One Edge Function Bridges a Public Panel to an Internal Genie Space</text>
-      <rect x="30" y="70" width="1120" height="560" rx="26" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+      <text x="30" y="36" class="diagram-title" font-size="24">One Browser, Two Chat Paths: Genie via our Worker · Yext direct</text>
+      <rect x="30" y="60" width="1120" height="620" rx="26" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
 
-      <rect x="60" y="105" width="230" height="150" rx="18" class="box-blue"/><text x="85" y="138" class="title-sm">Browser</text><text x="85" y="166" class="label-sm">InfoAtAGlance.astro island</text><text x="85" y="186" class="label-sm">Suggestion chip or</text><text x="85" y="206" class="label-sm">free-text question</text><text x="85" y="226" class="label-sm">Keeps conversationId</text>
+      <!-- Browser -->
+      <rect x="440" y="90" width="300" height="150" rx="18" class="box-blue"/><text x="465" y="122" class="title-sm">Browser (every page)</text><text x="465" y="148" class="label-sm">InfoAtAGlance island — panel</text><text x="465" y="168" class="label-sm">YextChat island — floating bot</text><text x="465" y="188" class="label-sm">Both hold their own conversationId</text><text x="465" y="208" class="label-sm">Yext transcript in sessionStorage</text><text x="465" y="228" class="label-sm">Replies rendered via miniMarkdown</text>
 
-      <rect x="360" y="95" width="290" height="170" rx="18" class="box-green"/><text x="385" y="128" class="title-sm">/api/genie (Worker)</text><text x="385" y="156" class="label-sm">prerender = false</text><text x="385" y="176" class="label-sm">Validate: question required,</text><text x="385" y="196" class="label-sm">&le; 1000 chars; CORS + OPTIONS</text><text x="385" y="216" class="label-sm">Per-isolate token cache</text><text x="385" y="236" class="label-sm">CHAT mode (default) / AGENT</text>
-      <line x1="290" y1="175" x2="360" y2="175" class="arrow" marker-end="url(#arrow2)"/>
-      <text x="298" y="165" class="label-sm">POST JSON</text>
+      <!-- LEFT PATH: Genie -->
+      <text x="120" y="285" class="title-sm">Path A — "Information at a glance"</text>
+      <rect x="90" y="300" width="330" height="150" rx="18" class="box-green"/><text x="115" y="332" class="title-sm">/api/genie (our Worker)</text><text x="115" y="358" class="label-sm">prerender = false · CORS + OPTIONS</text><text x="115" y="378" class="label-sm">Validate: question &le; 1000 chars</text><text x="115" y="398" class="label-sm">Per-isolate Azure token cache</text><text x="115" y="418" class="label-sm">GET = value-free readiness check</text><text x="115" y="438" class="label-sm">CHAT mode (default) / AGENT</text>
+      <line x1="470" y1="240" x2="300" y2="300" class="arrow" marker-end="url(#arrow2)"/><text x="300" y="270" class="label-sm">POST {question}</text>
 
-      <rect x="720" y="95" width="370" height="80" rx="18" class="box-amber"/><text x="745" y="126" class="title-sm">Microsoft Entra (Azure AD)</text><text x="745" y="150" class="label-sm">login.microsoftonline.com/&lt;tenant&gt;/oauth2/v2.0/token</text><text x="745" y="166" class="label-sm">client_credentials · scope = Databricks resource/.default</text>
-      <line x1="650" y1="150" x2="720" y2="135" class="arrow" marker-end="url(#arrow2)"/>
+      <rect x="90" y="480" width="330" height="70" rx="18" class="box-amber"/><text x="115" y="510" class="title-sm">Microsoft Entra (Azure AD)</text><text x="115" y="533" class="label-sm">client_credentials → bearer token</text>
+      <line x1="255" y1="450" x2="255" y2="480" class="arrow" marker-end="url(#arrow2)"/>
 
-      <rect x="720" y="200" width="370" height="120" rx="18" class="box-purple"/><text x="745" y="232" class="title-sm">Databricks Genie API</text><text x="745" y="258" class="label-sm">start-conversation OR conversations/{id}/messages</text><text x="745" y="278" class="label-sm">poll messages/{id} until COMPLETED</text><text x="745" y="298" class="label-sm">(backoff 0.8s→3s, ~55s deadline)</text>
-      <line x1="905" y1="175" x2="905" y2="200" class="arrow" marker-end="url(#arrow2)"/>
-      <line x1="650" y1="205" x2="720" y2="245" class="arrow" marker-end="url(#arrow2)"/>
-      <text x="640" y="235" class="label-sm">Bearer token</text>
+      <rect x="90" y="580" width="330" height="80" rx="18" class="box-purple"/><text x="115" y="611" class="title-sm">Databricks Genie API</text><text x="115" y="634" class="label-sm">start-conversation / add message,</text><text x="115" y="650" class="label-sm">poll to COMPLETED (~55s budget)</text>
+      <line x1="255" y1="550" x2="255" y2="580" class="arrow" marker-end="url(#arrow2)"/>
+      <line x1="300" y1="450" x2="440" y2="235" class="arrow dash" marker-end="url(#arrow2)"/><text x="330" y="470" class="label-sm">{ answer }</text>
 
-      <rect x="360" y="360" width="290" height="150" rx="18" class="box"/><text x="385" y="393" class="title-sm">answerFromMessage()</text><text x="385" y="421" class="label-sm">Concatenate attachment</text><text x="385" y="441" class="label-sm">text / query descriptions</text><text x="385" y="461" class="label-sm">Fall back to msg.content</text><text x="385" y="481" class="label-sm">Return { answer, conversationId }</text>
-      <line x1="820" y1="320" x2="600" y2="360" class="arrow" marker-end="url(#arrow2)"/>
-      <text x="640" y="345" class="label-sm">COMPLETED message</text>
+      <!-- RIGHT PATH: Yext -->
+      <text x="770" y="285" class="title-sm">Path B — "eCommunity AI Chat Bot"</text>
+      <rect x="740" y="300" width="350" height="150" rx="18" class="box-red"/><text x="765" y="332" class="title-sm">Yext Chat API (direct)</text><text x="765" y="358" class="label-sm">cdn.yextapis.com/v2/accounts/me/</text><text x="765" y="376" class="label-sm">chat/{botId}/message?api_key=…</text><text x="765" y="398" class="label-sm">Public client key (as on live site)</text><text x="765" y="418" class="label-sm">Full message[] history sent per turn</text><text x="765" y="438" class="label-sm">→ response.message + conversationId</text>
+      <line x1="710" y1="240" x2="880" y2="300" class="arrow" marker-end="url(#arrow2)"/><text x="740" y="270" class="label-sm">POST {messages, conversationId}</text>
+      <line x1="880" y1="450" x2="740" y2="235" class="arrow dash" marker-end="url(#arrow2)"/><text x="800" y="470" class="label-sm">reply text</text>
 
-      <rect x="60" y="380" width="230" height="120" rx="18" class="box-blue"/><text x="85" y="413" class="title-sm">Render in panel</text><text x="85" y="441" class="label-sm">Minimal safe markdown:</text><text x="85" y="461" class="label-sm">escape → **bold**, `code`,</text><text x="85" y="481" class="label-sm">bullets, paragraphs</text>
-      <line x1="360" y1="440" x2="290" y2="440" class="arrow" marker-end="url(#arrow2)"/>
-      <text x="298" y="430" class="label-sm">JSON answer</text>
-
-      <rect x="60" y="300" width="1030" height="28" rx="14" fill="#e2e8f0"/><text x="80" y="320" class="label-sm">Trust boundary: DATABRICKS_CLIENT_SECRET, the Azure bearer token, and all workspace/space IDs stay inside the Worker — only the question text crosses out to Azure/Databricks, only the answer string crosses back to the browser.</text>
-
-      <rect x="60" y="540" width="1030" height="70" rx="16" fill="#f0fdf4" stroke="#4ade80"/><text x="80" y="566" class="title-sm">Error handling</text><text x="80" y="588" class="label-sm">HttpError carries a status: 400 bad input · 500 missing secret · 502 upstream failure / empty answer · 504 Genie timeout. Errors return { error } JSON with CORS; the panel shows the message inline.</text>
+      <!-- boundary -->
+      <rect x="470" y="300" width="240" height="360" rx="16" fill="#eef2ff" stroke="#c7d2fe"/><text x="490" y="330" class="title-sm">Trust boundary</text><text x="490" y="356" class="label-sm">Path A: secret +</text><text x="490" y="374" class="label-sm">bearer token never</text><text x="490" y="392" class="label-sm">leave the Worker.</text><text x="490" y="418" class="label-sm">Path B: nothing of</text><text x="490" y="436" class="label-sm">ours in the path —</text><text x="490" y="454" class="label-sm">key is already</text><text x="490" y="472" class="label-sm">public. No Worker,</text><text x="490" y="490" class="label-sm">no secret, no CORS</text><text x="490" y="508" class="label-sm">of ours.</text><text x="490" y="536" class="label-sm">Errors render inline</text><text x="490" y="554" class="label-sm">in each widget.</text>
     </svg>
   </section>
 
   <section class="grid two section">
     <div class="card">
-      <h2>6. Configuration</h2>
+      <h2>6. The Two Surfaces Compared</h2>
+      <table>
+        <thead><tr><th></th><th>Information at a glance</th><th>eCommunity AI Chat Bot</th></tr></thead>
+        <tbody>
+          <tr><td>Component</td><td><code>InfoAtAGlance.astro</code></td><td><code>YextChat.astro</code></td></tr>
+          <tr><td>Placement</td><td>Band under the header, home page</td><td>Floating launcher, every page (via <code>Base.astro</code>)</td></tr>
+          <tr><td>Back end</td><td>Databricks Genie space</td><td>Yext Chat bot <code>chatbotv2</code></td></tr>
+          <tr><td>Network path</td><td>Browser → <code>/api/genie</code> Worker → Azure AD → Genie</td><td>Browser → <code>cdn.yextapis.com</code> directly</td></tr>
+          <tr><td>Credential</td><td>Azure client secret <span class="pill red">server-only</span></td><td>Yext API key <span class="pill gray">public</span></td></tr>
+          <tr><td>Auth flow</td><td>Entra client-credentials, token cached per isolate</td><td>None — key in the query string</td></tr>
+          <tr><td>Conversation state</td><td>Client keeps <code>conversationId</code> in memory</td><td>Client keeps <code>messages[]</code> + <code>conversationId</code> in <code>sessionStorage</code></td></tr>
+          <tr><td>Response shape</td><td><code>{ answer, conversationId }</code> after polling</td><td><code>response.message</code> (single round-trip)</td></tr>
+          <tr><td>Markdown render</td><td>Inline mini-renderer</td><td>Shared <code>lib/miniMarkdown.ts</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h2>7. Yext Chat Bot Detail</h2>
+      <ul>
+        <li><strong>Config</strong> (component frontmatter): <code>apiDomain</code> <code>https://cdn.yextapis.com</code>, <code>botId</code> <code>chatbotv2</code>, public <code>apiKey</code>, API <code>version</code> <code>20230101</code>, title "eCommunity AI Chat Bot", greeting, and 8 suggestion chips (Get Care Now, Appointments, Costs &amp; Billing, MyChart, Find a Doctor, Careers, Mammography, Screenings).</li>
+        <li><strong>UI:</strong> fixed launcher bottom-right → 380&times;560 panel; header carries <em>restart</em> and <em>close</em>; goes full-screen under 480px.</li>
+        <li><strong>Request:</strong> <code>POST {apiDomain}/v2/accounts/me/chat/{botId}/message?v={version}&amp;api_key={apiKey}</code> with the entire <code>messages</code> array plus <code>conversationId</code> each turn.</li>
+        <li><strong>Response:</strong> <code>data.response.message</code> (appended as a <code>BOT</code> turn), <code>data.response.conversationId</code> (persisted). Errors read from <code>data.meta.errors[0].message</code>.</li>
+        <li><strong>Persistence:</strong> transcript + <code>conversationId</code> saved to <code>sessionStorage["ychat:"+botId]</code>, restored on load, so the conversation survives page navigation within the tab. <em>Restart</em> clears it.</li>
+        <li><strong>Resilience:</strong> on a failed turn the widget removes the unanswered user message from history and shows an inline error bubble.</li>
+      </ul>
+      <div class="callout warning"><strong>Why no server:</strong> the Yext chat key is a public client credential — the live <code>ecommunity.com</code> ships it in page source too. Proxying it through a Worker would add latency and a failure point without hiding anything, so the widget calls Yext directly.</div>
+    </div>
+  </section>
+
+  <section class="card section">
+    <h2>8. Genie Edge Function Detail</h2>
+    <p><strong>Route:</strong> <code>/api/genie</code> &nbsp;·&nbsp; <strong>POST body:</strong> <code>{ question, conversationId? }</code> &nbsp;·&nbsp; <strong>Runs as:</strong> a Cloudflare Worker (rest of the site prerendered).</p>
+    <ul>
+      <li><code>OPTIONS</code> — CORS preflight (<code>*</code> origin, POST only).</li>
+      <li><code>GET</code> — readiness check that returns booleans only: whether <code>DATABRICKS_CLIENT_SECRET</code> and each non-secret ID are present, plus any near-miss secret key name reported <em>by length only</em>. Never returns names or values.</li>
+      <li><strong>POST validate</strong> — reject empty questions and anything over 1000 characters (400).</li>
+      <li><code>getToken()</code> — client-credentials grant against Entra; token cached per isolate until 60s before expiry.</li>
+      <li><code>genieFetch()</code> — wrapper over <code>/api/2.0/genie…</code>; non-2xx becomes a 502 with a truncated detail.</li>
+      <li><strong>Start vs. continue</strong> — no <code>conversationId</code> → <code>start-conversation</code> with <code>conversation_type = mode</code>; otherwise POST a message to the existing conversation.</li>
+      <li><code>pollMessage()</code> — poll until <code>COMPLETED</code>; fail fast on <code>FAILED</code>/<code>CANCELLED</code>; 504 after ~55s (backoff 0.8s → 3s).</li>
+      <li><code>answerFromMessage()</code> — prefer attachment text, then query descriptions, then <code>msg.content</code>.</li>
+    </ul>
+    <div class="callout warning"><strong>Statefulness note:</strong> the token cache is per-isolate and non-durable — it only avoids re-auth during bursts on a warm isolate. Genie conversation continuity is the client's job.</div>
+  </section>
+
+  <section class="grid two section">
+    <div class="card">
+      <h2>9. Configuration</h2>
       <table>
         <thead><tr><th>Variable</th><th>Kind</th><th>Notes</th></tr></thead>
         <tbody>
-          <tr><td><code>DATABRICKS_CLIENT_SECRET</code></td><td><span class="pill red">Secret</span></td><td>Required. Set as an encrypted var for both Production and Preview, then redeploy.</td></tr>
-          <tr><td><code>DATABRICKS_TENANT_ID</code></td><td><span class="pill gray">Plaintext</span></td><td>Optional. Overrides the baked default Entra tenant.</td></tr>
-          <tr><td><code>DATABRICKS_CLIENT_ID</code></td><td><span class="pill gray">Plaintext</span></td><td>Optional. Overrides the default service-principal app ID.</td></tr>
-          <tr><td><code>DATABRICKS_WORKSPACE_URL</code></td><td><span class="pill gray">Plaintext</span></td><td>Optional. Overrides the default Azure Databricks workspace host.</td></tr>
-          <tr><td><code>DATABRICKS_GENIE_SPACE_ID</code></td><td><span class="pill gray">Plaintext</span></td><td>Optional. Overrides the default Genie space.</td></tr>
-          <tr><td><code>DATABRICKS_GENIE_MODE</code></td><td><span class="pill gray">Plaintext</span></td><td>Optional. <code>CHAT</code> (default) or <code>AGENT</code> for Genie's full SQL/tool path.</td></tr>
+          <tr><td><code>DATABRICKS_CLIENT_SECRET</code></td><td><span class="pill red">Secret</span></td><td>Required. <code>wrangler secret put</code> or dashboard; set for Production &amp; Preview, then redeploy.</td></tr>
+          <tr><td><code>DATABRICKS_TENANT_ID</code></td><td><span class="pill gray">var</span></td><td>Committed in <code>wrangler.jsonc</code>. Overridable.</td></tr>
+          <tr><td><code>DATABRICKS_CLIENT_ID</code></td><td><span class="pill gray">var</span></td><td>Committed. Service-principal app ID.</td></tr>
+          <tr><td><code>DATABRICKS_WORKSPACE_URL</code></td><td><span class="pill gray">var</span></td><td>Committed. Azure Databricks workspace host.</td></tr>
+          <tr><td><code>DATABRICKS_GENIE_SPACE_ID</code></td><td><span class="pill gray">var</span></td><td>Committed. Genie space.</td></tr>
+          <tr><td><code>DATABRICKS_GENIE_MODE</code></td><td><span class="pill gray">var</span></td><td>Committed as <code>CHAT</code>; <code>AGENT</code> for the full SQL/tool path.</td></tr>
+          <tr><td>Yext <code>apiKey</code> / <code>botId</code></td><td><span class="pill purple">in code</span></td><td>Public client values, baked into <code>YextChat.astro</code>. No env var.</td></tr>
         </tbody>
       </table>
-      <p class="small">Locally: <code>cp .dev.vars.example .dev.vars</code>, paste the secret, then <code>npm run build</code> and <code>npx wrangler pages dev dist</code> — <code>astro dev</code> does not run the function.</p>
+      <p class="small">Locally: <code>cp .dev.vars.example .dev.vars</code>, paste the secret, then <code>npm run build</code> + <code>npx wrangler pages dev dist</code>. <code>astro dev</code> does not run the Genie function; the Yext bot works in <code>astro dev</code> since it needs no server.</p>
     </div>
     <div class="card">
-      <h2>7. Page Sections Rebuilt</h2>
+      <h2>10. Page Sections Rebuilt</h2>
       <ul>
-        <li><strong>SiteHeader:</strong> CHN logo, tri-color topbar, utility nav (MyChart, Find a Provider, Get Started).</li>
-        <li><strong>InfoAtAGlance:</strong> the Genie-backed panel — static lede + 4 suggestion chips + question box.</li>
-        <li><strong>Hero:</strong> overlaid title + lede on the CHN bariatric hero image.</li>
-        <li><strong>Assessment CTA</strong>, <strong>Services and Programs</strong> (3 cards), <strong>FAQ</strong>, <strong>Support</strong> bands.</li>
-        <li><strong>Locations:</strong> North and South, with address, phone, and thumbnail.</li>
-        <li><strong>Providers:</strong> 4 named physicians, initials fallback when no photo.</li>
-        <li><strong>SiteFooter:</strong> brand line, footer nav, "not the official site" disclaimer.</li>
+        <li><strong>SiteHeader:</strong> CHN logo, tri-color topbar, utility nav.</li>
+        <li><strong>InfoAtAGlance:</strong> Genie-backed panel — static lede + 4 suggestion chips + question box.</li>
+        <li><strong>YextChat:</strong> floating "eCommunity AI Chat Bot", mounted globally in <code>Base.astro</code>.</li>
+        <li><strong>Hero</strong>, <strong>Assessment CTA</strong>, <strong>Services and Programs</strong> (3 cards), <strong>FAQ</strong>, <strong>Support</strong>.</li>
+        <li><strong>Locations:</strong> North and South. <strong>Providers:</strong> 4 physicians, initials fallback.</li>
+        <li><strong>SiteFooter:</strong> brand line, nav, "not the official site" disclaimer.</li>
       </ul>
     </div>
   </section>
 
   <section class="card section">
-    <h2>8. Edge Function Concept</h2>
-    <p><strong>Route:</strong> <code>POST /api/genie</code> &nbsp;·&nbsp; <strong>Body:</strong> <code>{ question, conversationId? }</code> &nbsp;·&nbsp; <strong>Runs as:</strong> a Cloudflare Worker (the rest of the site is prerendered).</p>
-    <p><strong>Responsibilities:</strong></p>
-    <ul>
-      <li><code>OPTIONS</code> — CORS preflight (<code>*</code> origin, POST only, Content-Type header).</li>
-      <li><strong>Validate</strong> — reject empty questions and anything over 1000 characters with a 400.</li>
-      <li><code>getToken()</code> — client-credentials grant against Entra; cache the token per isolate until 60s before expiry.</li>
-      <li><code>genieFetch()</code> — thin wrapper over <code>/api/2.0/genie…</code> with the bearer token; turns non-2xx into a 502 with a truncated detail string.</li>
-      <li><strong>Start vs. continue</strong> — no <code>conversationId</code> → <code>start-conversation</code> with <code>conversation_type = mode</code>; otherwise POST a message to the existing conversation.</li>
-      <li><code>pollMessage()</code> — poll until <code>COMPLETED</code>; fail fast on <code>FAILED</code>/<code>CANCELLED</code>; 504 after ~55s.</li>
-      <li><code>answerFromMessage()</code> — prefer attachment text, then query descriptions, then <code>msg.content</code>.</li>
-    </ul>
-    <div class="callout warning"><strong>Statefulness note:</strong> the token cache is per-isolate and non-durable — it only avoids re-auth during bursts on a warm isolate. Genie conversation continuity is the client's job: the browser holds <code>conversationId</code> and sends it back on follow-up questions.</div>
-  </section>
-
-  <section class="card section">
-    <h2>9. Build Log</h2>
+    <h2>11. Build Log</h2>
     <ol>
-      <li><strong>Rebuild the page as an Astro static site:</strong> CHN Bariatric &amp; Medical Weight Loss landing page as components with a global stylesheet.</li>
-      <li><strong>Use the real CHN logo</strong> in the header.</li>
-      <li><strong>Move the Astro build into a <code>bariatrics/</code> subdirectory</strong> so Cloudflare can build it from a subfolder of the shared repo.</li>
-      <li><strong>Use the CHN starburst mark as the favicon.</strong></li>
-      <li><strong>Add the "Information at a glance" panel</strong> backed by Databricks Genie via a new <code>/api/genie</code> server route and an Azure service-principal auth flow.</li>
-      <li><strong>Tune the Genie panel:</strong> CHAT mode as the default, longer poll window, and minimal client-side markdown rendering for answers.</li>
+      <li><strong>Rebuild the page as an Astro static site</strong> with components and a global stylesheet.</li>
+      <li><strong>Use the real CHN logo</strong> in the header; <strong>move the build into <code>bariatrics/</code></strong>; <strong>CHN starburst favicon.</strong></li>
+      <li><strong>Add "Information at a glance"</strong> backed by Databricks Genie via a new <code>/api/genie</code> route and Azure service-principal auth.</li>
+      <li><strong>Tune the Genie panel:</strong> CHAT default, longer poll, client-side markdown.</li>
+      <li><strong>Deploy as a Cloudflare Worker:</strong> move the Genie route onto Astro + the adapter.</li>
+      <li><strong>Add a GET diagnostic</strong> to <code>/api/genie</code>, then reduce it to a boolean readiness check that also flags a misnamed secret key by length.</li>
+      <li><strong>Move non-secret Databricks IDs into <code>wrangler.jsonc</code> vars.</strong></li>
+      <li><strong>Add the floating Yext Chat widget</strong> ("eCommunity AI Chat Bot") — client-side, session-persisted, using the shared <code>miniMarkdown</code> renderer.</li>
     </ol>
   </section>
 
   <section class="card section">
-    <h2>10. Summary</h2>
-    <p>"CHN Bariatrics is an Astro rebuild of a single Community Health Network marketing page, prerendered to static HTML and served from Cloudflare's edge with no origin. The one exception is <code>/api/genie</code>, a Worker route that opts out of prerendering: it authenticates a Microsoft Entra service principal, proxies a visitor's question to an internal Databricks Genie space, polls until the answer is ready, and returns just the answer text — so the 'Information at a glance' panel can be conversational without any Azure or Databricks credential ever reaching the browser."</p>
-    <p>"The architectural value is the isolation. The content build, the AI route, and the upstream Genie space are each independently swappable — restyling the page, changing Genie modes or spaces, or removing the panel entirely each touch only one layer, and a Genie outage never affects how the rest of the site is served."</p>
+    <h2>12. Summary</h2>
+    <p>"CHN Bariatrics is an Astro rebuild of a single Community Health Network marketing page, prerendered to static HTML on Cloudflare's edge. It carries two AI chat features that are deliberately built differently. 'Information at a glance' needs an Azure credential to reach an internal Databricks Genie space, so it gets one Worker route — <code>/api/genie</code> — that holds the secret, authenticates a service principal, polls Genie for an answer, and returns only the text. The floating 'eCommunity AI Chat Bot' uses Yext's public client key, the same one the live site ships, so it runs entirely in the browser against Yext's CDN with no server of ours in the path."</p>
+    <p>"The architectural value is that the trust model follows the credential. A secret gets a server boundary; a public key does not. Static content, the Genie function, and the Yext widget are each independently swappable, and an outage in any one leaves the other two untouched."</p>
   </section>
 
   <section class="card section">
     <h2>Sources Used</h2>
     <ul>
-      <li>Project source: <code>src/pages/index.astro</code>, <code>src/layouts/Base.astro</code>, <code>src/components/{SiteHeader,SiteFooter,InfoAtAGlance}.astro</code>.</li>
-      <li>Edge function: <code>src/pages/api/genie.ts</code> (Azure AD token, Genie conversation + polling, answer extraction).</li>
+      <li>Pages &amp; layout: <code>src/pages/index.astro</code>, <code>src/layouts/Base.astro</code>, <code>src/components/{SiteHeader,SiteFooter,InfoAtAGlance,YextChat}.astro</code>.</li>
+      <li>Genie edge function: <code>src/pages/api/genie.ts</code> (Entra token, Genie conversation + polling, GET readiness check).</li>
+      <li>Shared: <code>src/lib/miniMarkdown.ts</code>.</li>
       <li>Build &amp; deploy config: <code>astro.config.mjs</code>, <code>package.json</code>, <code>wrangler.jsonc</code>, <code>.dev.vars.example</code>, <code>README.md</code>.</li>
-      <li>Upstream: Community Health Network "Bariatric and Medical Weight Loss Services" page on <code>ecommunity.com</code>; Databricks Genie Conversation API; Microsoft Entra OAuth 2.0 client-credentials.</li>
+      <li>Upstream: CHN "Bariatric and Medical Weight Loss Services" on <code>ecommunity.com</code>; Databricks Genie Conversation API; Microsoft Entra OAuth 2.0 client-credentials; Yext Chat API (<code>cdn.yextapis.com</code>).</li>
     </ul>
   </section>
 </main>

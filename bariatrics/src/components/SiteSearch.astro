@@ -1,0 +1,333 @@
+---
+/**
+ * Header search — a rebuild of the "Search eCommunity.com" bar on the live
+ * site. Queries the Yext Search API directly from the browser (read-only
+ * Search API key, same client-side pattern the live site's search uses) and
+ * shows the generative direct answer plus top results inline.
+ */
+const search = {
+  endpoint: "https://cdn.yextapis.com/v2/accounts/me/search/query",
+  // Public read-only Yext Search API key.
+  apiKey: "0f3c031ce836961cf921558aca570af3",
+  experienceKey: "universal-search",
+  locale: "en",
+  version: "20220511",
+  // Relative result URLs (c_url) are resolved against the main site.
+  contentBase: "https://www.ecommunity.com",
+};
+---
+
+<div class="hsearch" data-hsearch data-config={JSON.stringify(search)}>
+  <button type="button" class="hsearch__toggle" data-hsearch-toggle aria-expanded="false" aria-label="Search">
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <circle cx="11" cy="11" r="7"></circle>
+      <path d="M21 21l-4.3-4.3"></path>
+    </svg>
+  </button>
+
+  <div class="hsearch__bar" data-hsearch-bar hidden>
+    <div class="wrap">
+      <form class="hsearch__form" data-hsearch-form role="search">
+        <input
+          type="search"
+          class="hsearch__input"
+          data-hsearch-input
+          placeholder="Search eCommunity.com"
+          aria-label="Search eCommunity.com"
+          autocomplete="off"
+          maxlength="128"
+        />
+        <button type="submit" class="hsearch__submit" aria-label="Submit search">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="M21 21l-4.3-4.3"></path>
+          </svg>
+        </button>
+      </form>
+
+      <div class="hsearch__results" data-hsearch-results hidden aria-live="polite"></div>
+    </div>
+  </div>
+</div>
+
+<style is:global>
+  /* Global: the results list is built by the client script. Class names are
+     namespaced to this component. */
+  .hsearch { display: flex; align-items: center; }
+
+  .hsearch__toggle {
+    background: transparent;
+    border: 0;
+    color: var(--heading);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .hsearch__toggle:hover,
+  .hsearch__toggle[aria-expanded="true"] { color: var(--accent); background: var(--band); }
+
+  .hsearch__bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    background: var(--surface);
+    border-bottom: 1px solid var(--rule);
+    box-shadow: 0 12px 24px rgba(23, 23, 40, 0.08);
+    padding-block: 0.85rem 1rem;
+  }
+  .hsearch__bar[hidden] { display: none; }
+
+  .hsearch__form {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 0.15rem 0.15rem 0.15rem 0.9rem;
+  }
+  .hsearch__form:focus-within { border-color: var(--accent); }
+  .hsearch__input {
+    flex: 1;
+    border: 0;
+    outline: 0;
+    font: inherit;
+    font-size: 1rem;
+    padding: 0.6rem 0;
+    background: transparent;
+    color: var(--ink);
+  }
+  .hsearch__submit {
+    flex: none;
+    width: 40px;
+    height: 40px;
+    border: 0;
+    border-radius: 5px;
+    background: var(--accent);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .hsearch__submit:hover { background: var(--accent-dark); }
+
+  .hsearch__results { margin-top: 0.9rem; }
+  .hsearch__results[hidden] { display: none; }
+  .hsearch__status { color: var(--muted); font-size: 0.9rem; padding: 0.4rem 0; }
+
+  .hsearch__answer {
+    background: var(--band);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 6px 6px 0;
+    padding: 0.85rem 1rem;
+    margin-bottom: 0.9rem;
+    font-size: 0.95rem;
+    line-height: 1.55;
+  }
+  .hsearch__answer-label {
+    display: block;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.35rem;
+  }
+  .hsearch__answer a { color: var(--accent); font-weight: 600; }
+
+  .hsearch__list { display: grid; gap: 0.15rem; }
+  .hsearch__item {
+    display: block;
+    padding: 0.6rem 0.5rem;
+    border-radius: 5px;
+    text-decoration: none;
+    color: inherit;
+  }
+  .hsearch__item:hover { background: var(--band); }
+  .hsearch__item-name { color: var(--accent); font-weight: 600; font-size: 0.97rem; }
+  .hsearch__item-vertical {
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-left: 0.5rem;
+  }
+  .hsearch__item-snippet {
+    display: block;
+    color: var(--muted);
+    font-size: 0.88rem;
+    margin-top: 0.15rem;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .hsearch__all {
+    display: inline-block;
+    margin-top: 0.6rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .hsearch__all:hover { text-decoration: underline; }
+</style>
+
+<script>
+  const VERTICAL_LABELS: Record<string, string> = {
+    service: "Services",
+    locationsearch: "Locations",
+    healthcare_professionals: "Providers",
+    person: "Care teams",
+    page: "Pages",
+    faq: "FAQ",
+    blog: "Articles",
+  };
+
+  document.querySelectorAll<HTMLElement>("[data-hsearch]").forEach((root) => {
+    const cfg = JSON.parse(root.dataset.config || "{}");
+    const toggle = root.querySelector<HTMLButtonElement>("[data-hsearch-toggle]")!;
+    const bar = root.querySelector<HTMLElement>("[data-hsearch-bar]")!;
+    const form = root.querySelector<HTMLFormElement>("[data-hsearch-form]")!;
+    const input = root.querySelector<HTMLInputElement>("[data-hsearch-input]")!;
+    const results = root.querySelector<HTMLElement>("[data-hsearch-results]")!;
+
+    let timer: number | undefined;
+    let seq = 0;
+
+    const esc = (s: string) =>
+      (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+    const resolveUrl = (u: string) =>
+      !u ? "#" : /^https?:\/\//.test(u) ? u : cfg.contentBase + (u.startsWith("/") ? u : "/" + u);
+
+    function setOpen(open: boolean) {
+      bar.hidden = !open;
+      toggle.setAttribute("aria-expanded", String(open));
+      if (open) input.focus();
+      else {
+        results.hidden = true;
+        results.innerHTML = "";
+      }
+    }
+
+    function status(text: string) {
+      results.hidden = false;
+      results.innerHTML = `<p class="hsearch__status">${esc(text)}</p>`;
+    }
+
+    async function run(query: string) {
+      query = query.trim();
+      if (query.length < 2) {
+        results.hidden = true;
+        results.innerHTML = "";
+        return;
+      }
+      const mine = ++seq;
+      status("Searching…");
+
+      const url =
+        `${cfg.endpoint}?experienceKey=${encodeURIComponent(cfg.experienceKey)}` +
+        `&api_key=${encodeURIComponent(cfg.apiKey)}&v=${cfg.version}` +
+        `&locale=${encodeURIComponent(cfg.locale)}&input=${encodeURIComponent(query)}`;
+
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        if (mine !== seq) return;
+        const err = data?.meta?.errors?.[0]?.message;
+        if (!res.ok || err) throw new Error(err || `Search failed (${res.status}).`);
+        render(query, data.response || {});
+      } catch (e) {
+        if (mine !== seq) return;
+        status(e instanceof Error ? e.message : "Search is unavailable right now.");
+      }
+    }
+
+    function render(query: string, response: any) {
+      const parts: string[] = [];
+
+      const da = response.directAnswer;
+      const daText = da?.answer?.snippet?.value || da?.answer?.value;
+      if (daText) {
+        const link = da.relatedItem?.data?.fieldValues?.c_url || da.relatedItem?.data?.c_url;
+        parts.push(
+          `<div class="hsearch__answer">` +
+            `<span class="hsearch__answer-label">Answer</span>` +
+            `${esc(daText)}` +
+            (link
+              ? ` <a href="${resolveUrl(link)}">${esc(
+                  da.relatedItem?.data?.fieldValues?.name || "Read more",
+                )} &rarr;</a>`
+              : "") +
+          `</div>`,
+        );
+      }
+
+      const items: string[] = [];
+      let shown = 0;
+      for (const mod of response.modules || []) {
+        const label = VERTICAL_LABELS[mod.verticalConfigId] || mod.verticalConfigId;
+        for (const r of mod.results || []) {
+          if (shown >= 8) break;
+          const d = r.data || {};
+          const name = d.name || d.title;
+          const link = d.c_url || d.landingPageUrl || d.slug || d.websiteUrl;
+          if (!name || !link) continue;
+          const snippet = r.snippet?.value || d.s_snippet || d.c_body || d.description || "";
+          items.push(
+            `<a class="hsearch__item" href="${resolveUrl(link)}">` +
+              `<span class="hsearch__item-name">${esc(name)}</span>` +
+              `<span class="hsearch__item-vertical">${esc(label)}</span>` +
+              (snippet ? `<span class="hsearch__item-snippet">${esc(snippet)}</span>` : "") +
+            `</a>`,
+          );
+          shown++;
+        }
+      }
+
+      if (items.length) {
+        parts.push(`<div class="hsearch__list">${items.join("")}</div>`);
+      } else if (!daText) {
+        parts.push(`<p class="hsearch__status">No results for “${esc(query)}”.</p>`);
+      }
+
+      parts.push(
+        `<a class="hsearch__all" href="${cfg.contentBase}/search?query=${encodeURIComponent(
+          query,
+        )}">See all results on eCommunity.com &rarr;</a>`,
+      );
+
+      results.hidden = false;
+      results.innerHTML = parts.join("");
+    }
+
+    toggle.addEventListener("click", () =>
+      setOpen(toggle.getAttribute("aria-expanded") !== "true"),
+    );
+    input.addEventListener("input", () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => run(input.value), 250);
+    });
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      window.clearTimeout(timer);
+      run(input.value);
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && toggle.getAttribute("aria-expanded") === "true") setOpen(false);
+    });
+    document.addEventListener("click", (e) => {
+      if (
+        toggle.getAttribute("aria-expanded") === "true" &&
+        !root.contains(e.target as Node)
+      ) {
+        setOpen(false);
+      }
+    });
+  });
+</script>

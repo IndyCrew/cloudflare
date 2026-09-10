@@ -35,6 +35,15 @@ npm run build && npx wrangler dev   # http://localhost:8788
   Cloudflare Worker route. `@astrojs/cloudflare` emits the Worker; the rest of
   `dist/` is served as static assets.
 
+## Header search ("Search eCommunity.com")
+
+`src/components/SiteSearch.astro` (toggled from `SiteHeader.astro`) queries the
+Yext Search API directly from the browser —
+`GET https://cdn.yextapis.com/v2/accounts/me/search/query` with a **public
+read-only Search API key** and `experienceKey=universal-search` — and shows the
+generative direct answer plus the top results inline, each linking to the
+matching page on `ecommunity.com`. No server route or secret.
+
 ## Yext Chat ("eCommunity AI Chat Bot")
 
 `src/components/YextChat.astro` is the floating chat widget (rebuilt from the
