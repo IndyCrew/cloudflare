@@ -252,6 +252,13 @@ const suggestions = [
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ question, conversationId }),
         });
+        if (!res.headers.get("content-type")?.includes("application/json")) {
+          // The platform's own gateway can time out and return an HTML error
+          // page before our route's slower Genie poll finishes.
+          throw new Error(
+            "Genie is taking longer than usual to respond. Please try again.",
+          );
+        }
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || `Request failed (${res.status}).`);
         conversationId = data.conversationId ?? conversationId;

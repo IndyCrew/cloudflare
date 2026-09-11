@@ -144,7 +144,10 @@ async function pollMessage(
   conversationId: string,
   messageId: string,
 ): Promise<GenieMessage> {
-  const deadline = Date.now() + 55_000;
+  // Kept comfortably under Webflow Cloud's gateway timeout, which otherwise
+  // kills the request and returns its own HTML error page before we get a
+  // chance to return a JSON one.
+  const deadline = Date.now() + 25_000;
   let delay = 800;
   while (Date.now() < deadline) {
     const msg = (await genieFetch(
