@@ -1,12 +1,13 @@
 ---
 // Simplified rebuild of the Community Health Network global header.
 import SiteSearch from "./SiteSearch.astro";
+import { withBase } from "../lib/base";
 ---
 <header class="site-header">
   <div class="topbar"></div>
   <div class="wrap header-inner">
     <a class="brand" href="https://www.ecommunity.com/" aria-label="Community Health Network home">
-      <img class="brand__logo" src={`${import.meta.env.BASE_URL}chn-logo.svg`} alt="Community Health Network" width="232" height="56" />
+      <img class="brand__logo" src={withBase("chn-logo.svg")} alt="Community Health Network" width="232" height="56" />
     </a>
     <nav class="header-actions" aria-label="Utility">
       <a href="https://www.ecommunity.com/mychart">MyChart</a>

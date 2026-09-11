@@ -6,16 +6,14 @@ import cloudflare from '@astrojs/cloudflare';
 // `export const prerender = false` (see src/pages/api/genie.ts). Deployed to
 // Cloudflare Workers with static assets — the adapter emits dist/_worker.js.
 //
-// ASTRO_BASE_PATH lets the same build be mounted under a subpath (e.g. `/app`
-// for the Webflow Cloud deploy) without affecting the root-path Cloudflare
-// Workers deploy, which doesn't set it.
-const rawBase = process.env.ASTRO_BASE_PATH;
-const base = rawBase && !rawBase.endsWith('/') ? `${rawBase}/` : rawBase;
-
+// Also deployed to Webflow Cloud under a `/app` subpath — Webflow's builder
+// discards this file and generates its own astro.config.mjs, setting `base`
+// itself from its COSMIC_MOUNT_PATH env var, so that mount point isn't
+// configured here. Asset/link paths use src/lib/base.ts's `withBase()`
+// instead of hardcoding root-relative paths, so they work under either base.
 export default defineConfig({
   site: 'https://cloudflare.indyadrian.workers.dev',
   output: 'static',
-  ...(base ? { base } : {}),
   adapter: cloudflare({
     platformProxy: { enabled: true },
   }),

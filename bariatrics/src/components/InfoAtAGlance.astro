@@ -189,6 +189,8 @@ const suggestions = [
 </style>
 
 <script>
+  import { withBase } from "../lib/base";
+
   document.querySelectorAll<HTMLElement>("[data-iaag]").forEach((root) => {
     const toggle = root.querySelector<HTMLButtonElement>("[data-iaag-toggle]")!;
     const label = root.querySelector<HTMLElement>("[data-iaag-label]")!;
@@ -245,7 +247,7 @@ const suggestions = [
       answer.textContent = `Asking about “${question}”…`;
 
       try {
-        const res = await fetch(`${import.meta.env.BASE_URL}api/genie`, {
+        const res = await fetch(withBase("api/genie"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ question, conversationId }),
