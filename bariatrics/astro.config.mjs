@@ -9,7 +9,8 @@ import cloudflare from '@astrojs/cloudflare';
 // ASTRO_BASE_PATH lets the same build be mounted under a subpath (e.g. `/app`
 // for the Webflow Cloud deploy) without affecting the root-path Cloudflare
 // Workers deploy, which doesn't set it.
-const base = process.env.ASTRO_BASE_PATH;
+const rawBase = process.env.ASTRO_BASE_PATH;
+const base = rawBase && !rawBase.endsWith('/') ? `${rawBase}/` : rawBase;
 
 export default defineConfig({
   site: 'https://cloudflare.indyadrian.workers.dev',
